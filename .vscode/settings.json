@@ -4,6 +4,8 @@
         "mqueue.h": "c",
         "stdlib.h": "c",
         "sniffer.h": "c",
-        "pthread.h": "c"
+        "pthread.h": "c",
+        "ctype.h": "c",
+        "socket_type.h": "c"
     }
 }

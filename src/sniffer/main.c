@@ -17,19 +17,12 @@ int main( int argc, char *argv[] )
     .req_port_source = NULL 
   };
 
-  struct option {
-	  const char *name;
-	  int has_arg;
-	  int *flag;
-	  int val;
-  };
-
-  const struct option options[5] = {
+  const struct option options[] = {
     { .name = "ipsrc", .has_arg = required_argument, .flag = 0, .val = '1' },
     { .name = "ipdest", .has_arg = required_argument, .flag = 0, .val = '2' },
     { .name = "portsrc", .has_arg = required_argument, .flag = 0, .val = '3' },
     { .name = "portdest", .has_arg = required_argument, .flag = 0, .val = '4' },
-    { .name = 0, .has_arg = 0, .flag = 0, .val = 0 }
+    { .name = NULL, .has_arg = 0, .flag = NULL, .val = 0 }
   };
 
   int opt;
@@ -38,33 +31,33 @@ int main( int argc, char *argv[] )
     switch (opt)
     {
       case '1':
-        if ( check_ip(optarg) ) 
+        if ( is_valid_ip(optarg) ) 
         {
-          strcpy(args.req_ip_source, optarg );
+          args.req_ip_source = optarg;
           break;
         }
         else
           ERROR_EXIT("Wrong value of reqired ip source address!\n");
       case '2':
-        if ( check_ip(optarg) ) 
+        if ( is_valid_ip(optarg) ) 
         {
-          strcpy(args.req_ip_source, optarg );
+          args.req_ip_dest = optarg;
           break;
         }
         else
           ERROR_EXIT("Wrong value of reqired ip dest address!\n");
       case '3':
-        if ( check_port(optarg) ) 
+        if ( is_valid_port(optarg) ) 
         {
-          strcpy(args.req_ip_source, optarg );
+          args.req_port_source = optarg;
           break;
         }
         else
           ERROR_EXIT("Wrong value of reqired source port value!\n");
       case '4':
-        if ( check_port(optarg) ) 
+        if ( is_valid_port(optarg) ) 
         {
-          strcpy(args.req_ip_source, optarg );
+          args.req_port_dest = optarg;
           break;
         }
         else

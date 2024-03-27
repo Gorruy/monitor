@@ -8,6 +8,7 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <sys/socket.h>
+#include <ctype.h>
 
 #include <fcntl.h>
 #include <mqueue.h>
@@ -27,8 +28,13 @@ void* sniff( void* args_struct_ptr )
   /* Creates a packet socket at l2 and checks all incoming
     packages of udp protocol for matching with requirements 
     if some are given  */
-    
+
   sniff_args_t* args = (sniff_args_t*)args_struct_ptr;
+
+  const char* req_ip_source = args->req_ip_source;
+  const char* req_ip_dest = args->req_ip_dest;
+  const char* req_port_source = args->req_port_source;
+  const char* req_port_dest = args->req_port_dest;
 
   struct sockaddr_ll addr_info;
   memset( &addr_info, 0, sizeof(struct sockaddr_ll) );
@@ -59,7 +65,7 @@ void* sniff( void* args_struct_ptr )
     }
 
     // Drop all tx packets
-    if (addr_info.sll_pkttype == PACKET_OUTGOING )
+    if ( addr_info.sll_pkttype == PACKET_OUTGOING )
       continue;
 
     // check l2 header
@@ -92,18 +98,18 @@ void* sniff( void* args_struct_ptr )
       ip_hdr_offset = sizeof(struct ipv6hdr);
     } 
 
-    if ( args->req_ip_dest && strcmp(args->req_port_dest, ip_dest ) != 0 )
+    if ( req_ip_dest && strcmp( req_ip_dest, ip_dest ) != 0 )
       continue;
-    if ( args->req_ip_source && strcmp(args->req_port_source, ip_source ) != 0 )
+    if ( req_ip_source && strcmp( req_port_source, ip_source ) != 0 )
       continue;
 
     // check udp header
     struct udphdr* udp;
     udp = (struct udphdr*)( buffer + sizeof(struct ethhdr) + ip_hdr_offset );
 
-    if ( args->req_port_dest && atoi(args->req_port_dest) != ntohs(udp->dest) )
+    if ( req_port_dest && atoi( req_port_dest) != ntohs(udp->dest) )
       continue;
-    if ( args->req_port_source && atoi(args->req_port_source) != ntohs(udp->source) )
+    if ( req_port_source && atoi( req_port_source) != ntohs(udp->source) )
       continue;
 
     // Packet satisfies all requirements, can add it to statistic
@@ -148,19 +154,23 @@ void* send_data_to_representer(void* args)
   exit(EXIT_SUCCESS);
 }
 
-int chec_ip( char* ip )
+int is_valid_ip( char* ip )
 {
-  if ( inet_ntop( AF_INET6, NULL, ip, MAX_IP_LEN ) == -1 ||
-       inet_ntop( AF_INET, NULL, ip, MAX_IP_LEN ) == -1   )
-    return 0;
-  else
+  char buf[100];
+  if ( inet_pton( AF_INET6, ip, buf ) > 0 ||
+       inet_pton( AF_INET, ip, buf ) > 0 )
     return 1;
+  else
+    return 0;
 }
 
-int chec_port( char* ip )
+int is_valid_port( char* port )
 {
-  if ( !isnumber(ip) )
-    return 0;
-  else 
-    return 1;
+  for ( size_t i = 0; i < strlen(port); i++ )
+  {
+    if ( !isdigit(port[i]) )
+      return 0;
+  }
+
+  return 1;
 }
