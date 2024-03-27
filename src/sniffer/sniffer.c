@@ -120,17 +120,18 @@ void* send_data_to_representer(void* args)
   attr.mq_maxmsg = 1;
   attr.mq_msgsize = sizeof(size_t)*2;
 
-  mqd_t queue_to_representer = mq_open("/SniffingQueue", O_RDWR | O_CREAT, 0666, &attr );
+  mqd_t queue_to_representer = mq_open("/SniffingQueue", O_RDWR | O_CREAT, 0777, &attr );
   if ( queue_to_representer == (mqd_t) -1 )
     ERROR_EXIT("Error in queue creation!\n");
 
-  size_t stats_ptr[2] = { all_pkt_num, all_pkt_len };
+  size_t stats_ptr[2];
 
-  if ( mq_receive(queue_to_representer, (char*)stats_ptr, 17, 0 ) == -1 )
+  if ( mq_receive(queue_to_representer, (char*)stats_ptr, sizeof(size_t)*2, 0 ) == -1 )
     ERROR_EXIT("Error when receiving message from queue\n");
 
-  printf("%ld", all_pkt_len);
-  fflush(stdout);
+  stats_ptr[0] = all_pkt_num;
+  stats_ptr[1] = all_pkt_len;
+
   if ( mq_send(queue_to_representer, (char*)stats_ptr, sizeof(size_t)*2, 0 ) == -1 )
     ERROR_EXIT("Error when sending message to queue\n");
 
