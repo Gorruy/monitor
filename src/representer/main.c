@@ -23,13 +23,13 @@ int main(void)
 
   size_t stats[2];
 
-  if ( mq_send( queue_to_sniffer, (char*)stats, 0, 0 ) == -1 )
+  if ( mq_send( queue_to_sniffer, (char*)stats, 0, 0 ) == -1 ) // Message of zero size, just to notify sniffer
     ERROR_EXIT("Error in sendind\n");
 
   if ( mq_receive( queue_to_sniffer, (char*)stats, sizeof(size_t)*2, 0 ) == -1 )
     ERROR_EXIT("Error in recieveing\n");
 
-  printf( "%ld, %ld", stats[0], stats[1] );
+  printf( "Number of packets:%ld, size of all packets in bytes:%ld", stats[0], stats[1] );
 
   mq_unlink("/SniffingQueue"); 
 }
