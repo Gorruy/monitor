@@ -2,6 +2,8 @@
     "files.associations": {
         "cstdlib": "c",
         "mqueue.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "sniffer.h": "c",
+        "pthread.h": "c"
     }
 }

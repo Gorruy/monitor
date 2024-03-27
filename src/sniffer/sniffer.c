@@ -17,13 +17,17 @@
 #define NOTVALIDSOCKET(s) ((s) < 0)
 #define CLOSESOCKET(s) close(s)
 #define SOCKET int 
-#define MAX_IP_LEN 40
+#define QUEUE_NAME "/SniffingQueue"
 
 static size_t all_pkt_len = 0;
 static size_t all_pkt_num = 0;
 
 void* sniff( void* args_struct_ptr ) 
 {
+  /* Creates a packet socket at l2 and checks all incoming
+    packages of udp protocol for matching with requirements 
+    if some are given  */
+    
   sniff_args_t* args = (sniff_args_t*)args_struct_ptr;
 
   struct sockaddr_ll addr_info;
@@ -32,10 +36,8 @@ void* sniff( void* args_struct_ptr )
   socklen_t info_len = sizeof(struct sockaddr_ll);
 
   uint8_t* buffer = (uint8_t*)malloc(USHRT_MAX); // 65535 for max size of udp packet
-  if (!buffer)
-  {
-    fprintf(stderr, "Malloc error!");
-    exit(EXIT_FAILURE);
+  if (!buffer){
+    ERROR_EXIT("Malloc error!\n");
   }
 
   SOCKET raw_socket = socket( AF_PACKET, SOCK_RAW, htons(ETH_P_ALL) );
@@ -116,25 +118,46 @@ void* sniff( void* args_struct_ptr )
 
 void* send_data_to_representer(void* args)
 {
+  /* Creates a posix message queue and starts listening for
+     signal from representer proccess, after which sends 
+     collected statistics to representer  */
+
   struct mq_attr attr;
   attr.mq_maxmsg = 1;
   attr.mq_msgsize = sizeof(size_t)*2;
 
-  mqd_t queue_to_representer = mq_open("/SniffingQueue", O_RDWR | O_CREAT, 0777, &attr );
-  if ( queue_to_representer == (mqd_t) -1 )
+  mqd_t queue_to_representer = mq_open(QUEUE_NAME, O_RDWR | O_CREAT, 0777, &attr );
+  if ( queue_to_representer == (mqd_t) -1 ) {
     ERROR_EXIT("Error in queue creation!\n");
+  }
 
   size_t stats_ptr[2];
 
-  if ( mq_receive(queue_to_representer, (char*)stats_ptr, sizeof(size_t)*2, 0 ) == -1 )
+  if ( mq_receive(queue_to_representer, (char*)stats_ptr, sizeof(size_t)*2, 0 ) == -1 ) {
     ERROR_EXIT("Error when receiving message from queue\n");
+  }
 
   stats_ptr[0] = all_pkt_num;
   stats_ptr[1] = all_pkt_len;
 
-  if ( mq_send(queue_to_representer, (char*)stats_ptr, sizeof(size_t)*2, 0 ) == -1 )
+  if ( mq_send(queue_to_representer, (char*)stats_ptr, sizeof(size_t)*2, 0 ) == -1 ){
     ERROR_EXIT("Error when sending message to queue\n");
+  }
 
-  mq_unlink("/SniffingQueue");
+  mq_unlink(QUEUE_NAME);
   exit(EXIT_SUCCESS);
+}
+
+int chec_ip( char* ip )
+{
+  if ( inet_ntop( AF_INET6, NULL, ip, MAX_IP_LEN ) == -1 ||
+       inet_ntop( AF_INET, NULL, ip, MAX_IP_LEN ) == -1   )
+    return -1;
+  else
+    return 0;
+}
+
+int chec_port( char* ip )
+{
+  return 1;
 }

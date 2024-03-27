@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MAX_IP_LEN 40
 #define ERROR_EXIT(message) do {\
   fprintf(stderr, message ); \
   perror(strerror(errno)); \
@@ -20,9 +21,10 @@ typedef struct sniff_args {
     char* req_port_source;
 } sniff_args_t;
 
-extern pthread_mutex_t stats_mtx;
-
 void* sniff(void*);
 void* send_data_to_representer(void*);
+
+int check_ip(char*);
+int check_port(char*);
 
 #endif 
