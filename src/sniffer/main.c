@@ -38,28 +38,32 @@ int main( int argc, char *argv[] )
     switch (opt)
     {
       case '1':
-        if ( check_ip(optarg) != -1 ) {
+        if ( check_ip(optarg) ) 
+        {
           strcpy(args.req_ip_source, optarg );
           break;
         }
         else
           ERROR_EXIT("Wrong value of reqired ip source address!\n");
       case '2':
-        if ( check_ip(optarg) != -1 ) {
+        if ( check_ip(optarg) ) 
+        {
           strcpy(args.req_ip_source, optarg );
           break;
         }
         else
           ERROR_EXIT("Wrong value of reqired ip dest address!\n");
       case '3':
-        if ( check_port(optarg) != -1 ) {
+        if ( check_port(optarg) ) 
+        {
           strcpy(args.req_ip_source, optarg );
           break;
         }
         else
           ERROR_EXIT("Wrong value of reqired source port value!\n");
       case '4':
-        if ( check_port(optarg) != -1 ) {
+        if ( check_port(optarg) ) 
+        {
           strcpy(args.req_ip_source, optarg );
           break;
         }

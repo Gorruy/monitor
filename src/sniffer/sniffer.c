@@ -152,12 +152,15 @@ int chec_ip( char* ip )
 {
   if ( inet_ntop( AF_INET6, NULL, ip, MAX_IP_LEN ) == -1 ||
        inet_ntop( AF_INET, NULL, ip, MAX_IP_LEN ) == -1   )
-    return -1;
-  else
     return 0;
+  else
+    return 1;
 }
 
 int chec_port( char* ip )
 {
-  return 1;
+  if ( !isnumber(ip) )
+    return 0;
+  else 
+    return 1;
 }
