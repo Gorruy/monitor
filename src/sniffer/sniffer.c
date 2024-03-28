@@ -130,7 +130,7 @@ void* sniff( void* args_struct_ptr )
 void* send_data_to_representer(void* args)
 {
   /* Creates a posix message queue and starts listening for
-     signal from representer proccess, after which sends 
+     signal from representer proccess, after which it sends 
      collected statistics to representer  */
 
   struct mq_attr attr;
