@@ -33,6 +33,7 @@ void* sniff( void* args_struct_ptr )
 
   sniff_args_t* args = (sniff_args_t*)args_struct_ptr;
 
+  // todo: fix seg fault by strcmp args->req_*
   const char* req_ip_source = args->req_ip_source;
   const char* req_ip_dest = args->req_ip_dest;
   const char* req_port_source = args->req_port_source;
