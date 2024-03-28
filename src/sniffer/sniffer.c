@@ -20,6 +20,7 @@
 #define SOCKET int 
 #define QUEUE_NAME "/SniffingQueue"
 #define UDP_IN_IP_HDR 17
+#define IPV4_VERSION 4
 
 static size_t all_pkt_len = 0;
 static size_t all_pkt_num = 0;
@@ -85,14 +86,14 @@ void* sniff( void* args_struct_ptr )
     if ( ips->protocol != UDP_IN_IP_HDR )
       continue;
 
-    if ( ips->version == 4 )
+    if ( ips->version == IPV4_VERSION )
     {
       inet_ntop( AF_INET, &(ips->daddr), ip_dest, MAX_IP_LEN );
       inet_ntop( AF_INET, &(ips->saddr), ip_source, MAX_IP_LEN );
 
       ip_hdr_offset = ips->ihl*4;
     }
-    else if ( ips->version == 6 )
+    else
     {
       struct ipv6hdr* ips6 = (struct ipv6hdr*)( buffer + sizeof(struct ethhdr) );
 

@@ -8,7 +8,6 @@ int main( int argc, char *argv[] )
 {
   pthread_t sniffing_thread;
   pthread_t sending_thread;
-  pthread_cond_t info_dspl_signal;
 
   sniff_args_t args = { 
     .req_ip_dest = NULL,
