@@ -24,6 +24,8 @@ typedef struct sniff_args {
 void* sniff(void*);
 void* send_data_to_representer(void*);
 
+int parse_args( int, char*[], sniff_args_t* );
+
 int is_valid_ip(char*);
 int is_valid_port(char*);
 

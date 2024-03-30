@@ -5,14 +5,14 @@ CFLAGS = -O2 -Wall
 SNFRLDFLAGS = -lpthread -lrt
 RPSTLDFLAGS = -lrt
 
-SNFRSRCDIR = src/sniffer/
+SRCDIR = src/
 RPSTSRCDIR = src/representer/
 BINDIR = bin/
 BUILDDIR = build/
 INCLDIR = include/
 
-SNFRSRCS = $(wildcard $(SNFRSRCDIR)*.c)
-RPSTSRCS = $(wildcard $(RPSTSRCDIR)*.c)
+SNFRSRCS = $(wildcard $(SRCDIR)sniffer/*.c)
+RPSTSRCS = $(wildcard $(SRCDIR)representer/*.c)
 
 SNFROBJS := $(SNFRSRCS:.c=.o)
 RPSTOBJS := $(RPSTSRCS:.c=.o)
@@ -22,13 +22,13 @@ RPSTOBJS := $(RPSTSRCS:.c=.o)
 all: sniffer representer
 
 sniffer: $(SNFROBJS)
-	$(CC) $(CFLAGS) $(SNFRSRCS) -o $(BINDIR)$@ $(SNFRLDFLAGS)
+	$(CC) $(CFLAGS) $^ $(SNFRLDFLAGS) -o $(BINDIR)$@
 
 representer: $(RPSTOBJS)
-	$(CC) $(CFLAGS) $(RPSTSRCS) -o $(BINDIR)$@ $(RPSTLDFLAGS)
+	$(CC) $(CFLAGS) $^ $(RPSTLDFLAGS) -o $(BINDIR)$@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -I./$(INCLDIR) -c $< -o $@
 
 clean:
 	find . -name \*.o -type f -delete
