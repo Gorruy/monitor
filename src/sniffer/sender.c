@@ -54,8 +54,6 @@ void* send_data_to_representer(void* args_struct_ptr)
         else if ( errno != EAGAIN ) {
             break;
         }
-                printf("some");
-        fflush(stdout);
 
         pthread_mutex_lock(args->stat_mtx_ptr);
         pthread_cond_wait(args->new_data_sig_ptr, args->stat_mtx_ptr);
