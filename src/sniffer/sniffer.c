@@ -57,6 +57,8 @@ static int packet_meets_reqs(const char* req_ip_source,
     int ip_hdr_offset;
     struct iphdr* ips = (struct iphdr*)( packet + sizeof(struct ethhdr) );
   
+    printf("%d", ips->protocol);
+    fflush(stdout);
     if ( ips->protocol != UDP_IN_IP_HDR ) {
         return 0;
     }
@@ -95,7 +97,7 @@ static int packet_meets_reqs(const char* req_ip_source,
     if ( req_port_source && atoi( req_port_source) != ntohs(udp->source) ) {
         return 0;
     }
-
+     
     return 1;
 }
 
@@ -148,8 +150,7 @@ void* sniff( void* args_struct_ptr )
                                args->req_port_dest,  
                                buffer, 
                                addr_info)) {
-                                    printf("some");
-    fflush(stdout);
+
             pthread_mutex_lock(args->stat_mtx_ptr);
             *(args->pkt_len_ptr) = pkt_len;
             pthread_cond_signal(args->new_data_sig_ptr);

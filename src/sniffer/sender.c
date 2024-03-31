@@ -4,7 +4,8 @@
 
 #include "sender.h"
 
-#define QUEUE_NAME "/SniffingQueue"
+#define SEND_Q_NAME "/DataQueue"
+#define RECV_Q_NAME "/NoteQueue"
 
 #define ERROR_EXIT(message) do {\
   fprintf(stderr, message ); \
@@ -21,56 +22,57 @@ void* send_data_to_representer(void* args_struct_ptr)
 
     sender_args_t* args = (sender_args_t*)args_struct_ptr;
 
-    struct stats {
-        size_t all_pkt_num;
-        size_t all_pkt_len;
-    } stats_to_send;
+    size_t all_pkt_num = 0;
+    size_t all_pkt_len = 0;
 
-    stats_to_send.all_pkt_num = 0;
-    stats_to_send.all_pkt_len = 0;
+    struct mq_attr notif_attr = {
+        .mq_maxmsg = 1,
+        .mq_msgsize = sizeof(size_t)
+    };
 
-    struct mq_attr attr;
-    attr.mq_maxmsg = 1;
-    attr.mq_msgsize = sizeof(size_t)*2;
+    struct mq_attr data_attr = {
+        .mq_maxmsg = 1,
+        .mq_msgsize = sizeof(size_t)*2
+    };
 
-    mqd_t queue_to_representer = mq_open(QUEUE_NAME,
-                                         O_RDWR | O_CREAT | O_NONBLOCK,
-                                         0777,
-                                         &attr);
-    if ( queue_to_representer == (mqd_t) -1 ) {
+    mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT | O_NONBLOCK, 0666, &notif_attr);
+    if ( notif_q == (mqd_t) -1 ) {
         ERROR_EXIT("Error in queue creation!\n");
     }
 
+    mqd_t data_q = mq_open(SEND_Q_NAME, O_WRONLY | O_CREAT, 0666, &data_attr);
+    if ( data_q == (mqd_t) -1 ) {
+        ERROR_EXIT("Error in queue creation!\n");
+    }
+    size_t note[2];
+
     ssize_t rcv_status;
     while (1) {
-        rcv_status = mq_receive(queue_to_representer, 
-                                (char*)&stats_to_send, 
-                                sizeof(size_t)*2, 
-                                NULL);
+        rcv_status = mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL);
 
-        if ( rcv_status == -1 && errno != EAGAIN ) {
+        if ( rcv_status == -1 && errno != EAGAIN) {
             ERROR_EXIT("Error when receiving message from queue\n");
         }
-        else if ( errno != EAGAIN ) {
+        else if ( rcv_status != -1 ) {
             break;
-        }
+        }        
 
         pthread_mutex_lock(args->stat_mtx_ptr);
         pthread_cond_wait(args->new_data_sig_ptr, args->stat_mtx_ptr);
-        stats_to_send.all_pkt_num += *(args->pkt_len_ptr);
-        stats_to_send.all_pkt_len += 1;
+        all_pkt_num += 1;
+        all_pkt_len += *(args->pkt_len_ptr);
         pthread_mutex_unlock(args->stat_mtx_ptr);
     }
 
-    int send_status = mq_send(queue_to_representer, 
-                              (char*)&stats_to_send, 
-                              sizeof(size_t)*2, 
-                              0);
+    size_t stats_to_send[] = { all_pkt_num, all_pkt_len };
+
+    int send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
 
     if ( send_status == -1 ){
         ERROR_EXIT("Error when sending message to queue\n");
     }
 
-    mq_unlink(QUEUE_NAME);
+    mq_unlink(RECV_Q_NAME);
+    mq_unlink(SEND_Q_NAME);
     exit(EXIT_SUCCESS);
 }
