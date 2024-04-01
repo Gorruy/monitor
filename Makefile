@@ -28,6 +28,7 @@ representer: $(RPSTOBJS)
 	$(CC) $(CFLAGS) $^ $(RPSTLDFLAGS) -o $(BINDIR)$@
 
 %.o: %.c
+	mkdir bin
 	$(CC) $(CFLAGS) -I./$(INCLDIR) -c $< -o $@
 
 clean:
