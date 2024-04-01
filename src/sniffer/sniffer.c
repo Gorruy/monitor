@@ -152,7 +152,7 @@ void* sniff( void* args_struct_ptr )
         }
     }
 
-    // Unreachable
+    // todo: fix unreachable
     free(buffer);
     CLOSESOCKET(raw_socket);
 }
