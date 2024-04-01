@@ -56,8 +56,6 @@ static int packet_meets_reqs(const char* req_ip_source,
     int ip_hdr_offset;
     struct iphdr* ips = (struct iphdr*)( packet + sizeof(struct ethhdr) );
   
-    printf("%d", ips->protocol);
-    fflush(stdout);
     if ( ips->protocol != UDP_IN_IP_HDR ) {
         return 0;
     }
@@ -115,13 +113,13 @@ void* sniff( void* args_struct_ptr )
 
     uint8_t* buffer = (uint8_t*)malloc(USHRT_MAX); // 65535 for max size of udp packet
     if (!buffer) {
-      ERROR_EXIT("Malloc error!\n");
+      ERROR_EXIT("Malloc error!");
     }
 
     SOCKET raw_socket = socket( AF_PACKET, SOCK_RAW, htons(ETH_P_ALL) );
 
     if ( NOTVALIDSOCKET(raw_socket) ) {
-      ERROR_EXIT("Error in socket creation\n");
+      ERROR_EXIT("Error in socket creation");
     }
 
     while (1) {
@@ -136,7 +134,7 @@ void* sniff( void* args_struct_ptr )
         if ( pkt_len == -1 )
         {
             if ( errno != EAGAIN ) {
-                ERROR_EXIT("Error in recvfrom\n");
+                ERROR_EXIT("Error in recvfrom");
             }
             else {
                 continue;
@@ -149,11 +147,8 @@ void* sniff( void* args_struct_ptr )
                                args->req_port_dest,  
                                buffer, 
                                addr_info)) {
-
-            pthread_mutex_lock(args->stat_mtx_ptr);
-            *(args->pkt_len_ptr) = pkt_len;
-            pthread_cond_signal(args->new_data_sig_ptr);
-            pthread_mutex_unlock(args->stat_mtx_ptr);
+            *(args->pkt_len_ptr) += pkt_len;
+            *(args->pkt_num_ptr) += 1;
         }
     }
 

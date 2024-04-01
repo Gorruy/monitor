@@ -28,14 +28,14 @@ int main(void)
     size_t stats[2];
 
     if ( mq_send( note_q, (char*)stats, sizeof(char), 0 ) == -1 ) { // Message of zero size to notify sniffer
-        ERROR_EXIT("Error in sendind\n");
+        ERROR_EXIT("Error in sendind");
     }
     
     if ( mq_receive(data_q, (char*)stats, sizeof(size_t)*2, 0) == -1 ) {
-        ERROR_EXIT("Error in recieveing\n");
+        ERROR_EXIT("Error in recieveing");
     }
 
-    printf("Number of packets:%ld, size of all packets in bytes:%ld\n", 
+    printf("Number of packets:%ld, size of all packets in bytes:%ld\n",
            stats[0], 
            stats[1]);
 

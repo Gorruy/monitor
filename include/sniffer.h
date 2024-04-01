@@ -15,8 +15,7 @@ typedef struct sniff_args {
     char* req_port_dest;
     char* req_port_source;
     size_t* pkt_len_ptr;
-    pthread_mutex_t* stat_mtx_ptr;
-    pthread_cond_t* new_data_sig_ptr;
+    size_t* pkt_num_ptr;
 } sniff_args_t;
 
 void* sniff(void*);

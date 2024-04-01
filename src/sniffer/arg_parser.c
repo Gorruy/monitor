@@ -76,7 +76,7 @@ parsed_args_t parse_args( int argc, char* argv[] )
                   break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired ip source address!\n");
+                  ERROR_EXIT("Wrong value of reqired ip source address!");
               }
           case IPDEST:
               if ( is_valid_ip(optarg) ) {
@@ -84,7 +84,7 @@ parsed_args_t parse_args( int argc, char* argv[] )
                   break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired ip dest address!\n");
+                  ERROR_EXIT("Wrong value of reqired ip dest address!");
               }
           case PORTSRC:
               if ( is_valid_port(optarg) ) {
@@ -92,7 +92,7 @@ parsed_args_t parse_args( int argc, char* argv[] )
                   break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired source port value!\n");
+                  ERROR_EXIT("Wrong value of reqired source port value!");
               }
           case PORTDEST:
               if ( is_valid_port(optarg) ) {
@@ -100,7 +100,7 @@ parsed_args_t parse_args( int argc, char* argv[] )
                   break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired dest port value!\n");
+                  ERROR_EXIT("Wrong value of reqired dest port value!");
               }
           case 'h':
               printf("Usage: sniffer [OPTION]... [ADDRESS]...\n"

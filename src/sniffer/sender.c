@@ -34,41 +34,30 @@ void* send_data_to_representer(void* args_struct_ptr)
         .mq_msgsize = sizeof(size_t)*2
     };
 
-    mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT | O_NONBLOCK, 0666, &notif_attr);
+    mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT, 0666, &notif_attr);
     if ( notif_q == (mqd_t) -1 ) {
-        ERROR_EXIT("Error in queue creation!\n");
+        ERROR_EXIT("Error in queue creation!");
     }
 
     mqd_t data_q = mq_open(SEND_Q_NAME, O_WRONLY | O_CREAT, 0666, &data_attr);
     if ( data_q == (mqd_t) -1 ) {
-        ERROR_EXIT("Error in queue creation!\n");
+        ERROR_EXIT("Error in queue creation!");
     }
     size_t note[2];
 
-    ssize_t rcv_status;
-    while (1) {
-        rcv_status = mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL);
-
-        if ( rcv_status == -1 && errno != EAGAIN) {
-            ERROR_EXIT("Error when receiving message from queue\n");
-        }
-        else if ( rcv_status != -1 ) {
-            break;
-        }        
-
-        pthread_mutex_lock(args->stat_mtx_ptr);
-        pthread_cond_wait(args->new_data_sig_ptr, args->stat_mtx_ptr);
-        all_pkt_num += 1;
-        all_pkt_len += *(args->pkt_len_ptr);
-        pthread_mutex_unlock(args->stat_mtx_ptr);
+    if ( mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL) == -1 ) {
+        ERROR_EXIT("Error when receiving message from queue");
     }
+
+    all_pkt_num = *(args->pkt_num_ptr);
+    all_pkt_len = *(args->pkt_len_ptr);
 
     size_t stats_to_send[] = { all_pkt_num, all_pkt_len };
 
     int send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
 
     if ( send_status == -1 ){
-        ERROR_EXIT("Error when sending message to queue\n");
+        ERROR_EXIT("Error when sending message to queue");
     }
 
     mq_unlink(RECV_Q_NAME);
