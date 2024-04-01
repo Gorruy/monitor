@@ -1,30 +1,45 @@
 #include <pthread.h>
+#include <pthread.h>
+#include <errno.h>
 
 #include "sniffer.h"
+#include "sender.h"
+#include "arg_parser.h"
 
-int main( int argc, char *argv[] )
-{
-    if ( argc > 5 ) {
-        ERROR_EXIT("Too many options!! Try --help to get info on usage");
-    }
 
-    sniff_args_t* args;
-    parse_args( argc, argv, &args );
+pthread_mutex_t stat_mtx;
 
-    run_threads( args );
-
-    return 0;
-}
-
-int run_threads( void* args_for_sniffer )
+int run_threads( parsed_args_t reqs )
 {
     pthread_t sniffing_thread;
     pthread_t sending_thread;
 
+    size_t pkt_len;
+    pthread_mutex_t pkt_mtx;
+    pthread_cond_t pkt_cond;
+
+    sender_args_t args_for_sender = {
+        .pkt_len_ptr = &pkt_len,
+        .stat_mtx_ptr = &pkt_mtx,
+        .new_data_sig_ptr = &pkt_cond
+    };
+    sniff_args_t args_for_sniffer = {
+        .req_ip_dest = reqs.ip_dest,
+        .req_ip_source = reqs.ip_source,
+        .req_port_dest = reqs.port_dest,
+        .req_port_source = reqs.port_source,
+        .pkt_len_ptr = &pkt_len,
+        .stat_mtx_ptr = &pkt_mtx,
+        .new_data_sig_ptr = &pkt_cond
+    };
+
+    pthread_mutex_init(&pkt_mtx, NULL);
+    pthread_cond_init(&pkt_cond, NULL);
+
     if ( pthread_create( &sniffing_thread, NULL, &sniff, &args_for_sniffer ) != 0 ) {
         ERROR_EXIT("Sniffing thread creation error!\n");
     }
-    if ( pthread_create( &sending_thread, NULL, &send_data_to_representer, NULL ) != 0 ) {
+    if ( pthread_create( &sending_thread, NULL, &send_data_to_representer, &args_for_sender ) != 0 ) {
         ERROR_EXIT("Thread creation error!\n");
     }
 
@@ -34,6 +49,19 @@ int run_threads( void* args_for_sniffer )
     if ( pthread_join( sending_thread, NULL ) != 0 ) {
         ERROR_EXIT("Thread join error\n");    
     }
+
+    pthread_mutex_destroy(&pkt_mtx);
+    pthread_cond_destroy(&pkt_cond);
+
+    return 0;
+}
+
+
+int main( int argc, char *argv[] )
+{
+    parsed_args_t args = parse_args( argc, argv );
+
+    run_threads( args );
 
     return 0;
 }
