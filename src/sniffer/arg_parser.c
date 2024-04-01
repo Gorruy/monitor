@@ -8,9 +8,8 @@
 
 #include "arg_parser.h"
 
-#define ERROR_EXIT(message) do {\
-  fprintf(stderr, message ); \
-  perror(strerror(errno)); \
+#define ERROR_EXIT(message) do { \
+  perror(message); \
   exit(EXIT_FAILURE); \
 } while(0)
 

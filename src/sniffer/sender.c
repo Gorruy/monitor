@@ -7,9 +7,8 @@
 #define SEND_Q_NAME "/DataQueue"
 #define RECV_Q_NAME "/NoteQueue"
 
-#define ERROR_EXIT(message) do {\
-  fprintf(stderr, message ); \
-  perror(strerror(errno)); \
+#define ERROR_EXIT(message) do { \
+  perror(message); \
   exit(EXIT_FAILURE); \
 } while(0)
 

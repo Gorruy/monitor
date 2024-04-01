@@ -5,10 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ERROR_EXIT(message) do {\
-    fprintf(stderr, message ); \
-    perror(strerror(errno)); \
-    exit(EXIT_FAILURE); \
+#define ERROR_EXIT(message) do { \
+  perror(message); \
+  exit(EXIT_FAILURE); \
 } while(0)
 
 #define SEND_Q_NAME "/NoteQueue"
