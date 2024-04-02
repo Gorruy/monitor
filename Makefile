@@ -46,3 +46,4 @@ clean:
 
 trueclean: clean
 	rm $(BINDIR)/*
+	

@@ -6,8 +6,8 @@
 #include <string.h>
 
 #define ERROR_EXIT(message) do { \
-  perror(message); \
-  exit(EXIT_FAILURE); \
+    perror(message); \
+    exit(EXIT_FAILURE); \
 } while(0)
 
 #define SEND_Q_NAME "/NoteQueue"
