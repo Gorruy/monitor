@@ -9,8 +9,8 @@
 #include "arg_parser.h"
 
 #define WRONG_OPT_EXIT(message) do { \
-  printf(message); \
-  exit(EXIT_FAILURE); \
+    printf(message); \
+    exit(EXIT_FAILURE); \
 } while(0)
 
 
