@@ -26,8 +26,8 @@
 #define MAX_IP_LEN 40
 
 #define ERROR_EXIT(message) do { \
-  perror(message); \
-  exit(EXIT_FAILURE); \
+    perror(message); \
+    exit(EXIT_FAILURE); \
 } while(0)
 
 static int packet_meets_reqs(const char* req_ip_source,
