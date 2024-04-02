@@ -11,15 +11,23 @@ BINDIR = bin/
 BUILDDIR = build/
 INCLDIR = include/
 
+prefix = /usr/local
+
 SNFRSRCS = $(wildcard $(SRCDIR)sniffer/*.c)
 RPSTSRCS = $(wildcard $(SRCDIR)representer/*.c)
 
 SNFROBJS := $(SNFRSRCS:.c=.o)
 RPSTOBJS := $(RPSTSRCS:.c=.o)
 
-.PHONY: clean trueclean all
+.PHONY: clean trueclean all install build
 
-all: $(BINDIR) sniffer representer
+all: $(BINDIR) build install
+
+build: sniffer representer
+
+install: build
+	install -D $(BINDIR)* \
+		$(DESTDIR)$(prefix)/bin/
 
 sniffer: $(SNFROBJS)
 	$(CC) $(CFLAGS) $^ $(SNFRLDFLAGS) -o $(BINDIR)$@
