@@ -7,8 +7,8 @@
 #include <linux/ipv6.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
-#include <sys/socket.h>
 #include <ctype.h>
+#include <sys/socket.h>
 
 #include <fcntl.h>
 #include <mqueue.h>

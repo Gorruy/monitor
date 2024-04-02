@@ -19,7 +19,7 @@ RPSTOBJS := $(RPSTSRCS:.c=.o)
 
 .PHONY: clean trueclean all
 
-all: sniffer representer
+all: $(BINDIR) sniffer representer
 
 sniffer: $(SNFROBJS)
 	$(CC) $(CFLAGS) $^ $(SNFRLDFLAGS) -o $(BINDIR)$@
@@ -28,8 +28,10 @@ representer: $(RPSTOBJS)
 	$(CC) $(CFLAGS) $^ $(RPSTLDFLAGS) -o $(BINDIR)$@
 
 %.o: %.c
-	mkdir bin
 	$(CC) $(CFLAGS) -I./$(INCLDIR) -c $< -o $@
+
+$(BINDIR):
+	@mkdir -p $(BINDIR)
 
 clean:
 	find . -name \*.o -type f -delete

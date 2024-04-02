@@ -8,8 +8,8 @@
 
 #include "arg_parser.h"
 
-#define ERROR_EXIT(message) do { \
-  perror(message); \
+#define WRONG_OPT_EXIT(message) do { \
+  printf(message); \
   exit(EXIT_FAILURE); \
 } while(0)
 
@@ -40,8 +40,8 @@ static int is_valid_port( char* port )
 
 parsed_args_t parse_args( int argc, char* argv[] ) 
 {
-    if ( argc > 5 ) {
-        ERROR_EXIT("Too many options!! Try --help to get info on usage");
+    if ( argc > 9 ) {
+        WRONG_OPT_EXIT("Too many options!! Try --help to get info on usage\n");
     }
 
     parsed_args_t args = {
@@ -73,35 +73,35 @@ parsed_args_t parse_args( int argc, char* argv[] )
           case IPSRC:
               if ( is_valid_ip(optarg) ) {
                   args.ip_source = optarg;
-                  break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired ip source address!");
+                  WRONG_OPT_EXIT("Wrong value of reqired ip source address!\n");
               }
+              break;
           case IPDEST:
               if ( is_valid_ip(optarg) ) {
                   args.ip_dest = optarg;
-                  break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired ip dest address!");
+                  WRONG_OPT_EXIT("Wrong value of reqired ip dest address!\n");
               }
+              break;
           case PORTSRC:
               if ( is_valid_port(optarg) ) {
                   args.port_source = optarg;
-                  break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired source port value!");
+                  WRONG_OPT_EXIT("Wrong value of reqired source port value!\n");
               }
+              break;
           case PORTDEST:
               if ( is_valid_port(optarg) ) {
                   args.port_dest = optarg;
-                  break;
               }
               else {
-                  ERROR_EXIT("Wrong value of reqired dest port value!");
+                  WRONG_OPT_EXIT("Wrong value of reqired dest port value!\n");
               }
+              break;
           case 'h':
               printf("Usage: sniffer [OPTION]... [ADDRESS]...\n"
                      "Collect statistic on incoming udp packages\n"
