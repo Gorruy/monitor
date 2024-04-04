@@ -1,22 +1,58 @@
-// #include <arpa/inet.h>
-// #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <limits.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-// #include "arg_parser.h"
+#include "arg_parser.h"
 
 
-// #define NOTVALIDSOCKET(s) ((s) < 0)
-// #define CLOSESOCKET(s) close(s)
-// #define SOCKET int 
-// #define NUMBER_OF_TEST_RUNS 1000
+#define NOTVALIDSOCKET(s) ((s) < 0)
+#define CLOSESOCKET(s) close(s)
+#define SOCKET int 
+#define NUMBER_OF_TEST_RUNS 1000
 
 
-// int main(int argc, char* argv[] )
-// {
-//     parsed_args_t = parse_args(argc, argv);
+int main(int argc, char* argv[] )
+{
+    struct sockaddr_in addr;
+    parsed_args_t args = parse_args(argc, argv);
 
-//     SOCKET br_sock = socket( AF_INET4, SOCK_DGRAM, 0);
+    char *buf = (char*)malloc(USHRT_MAX + 1);
 
-//     for ( int i = 0; i < NUMBER_OF_TEST_RUNS; i++ ) {
-//         sendto()
-//     }
-// }
+    SOCKET br_sock = socket( AF_INET, SOCK_DGRAM, 0);
+
+    int broadcast_enable = 1;
+    int set_res = setsockopt(br_sock, 
+                             SOL_SOCKET, 
+                             SO_BROADCAST,
+                             &broadcast_enable, 
+                             sizeof(broadcast_enable));
+    if (set_res) {
+        perror("Error in broadcast socket creation\n");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(args.port_dest));
+    inet_pton(AF_INET, args.ip_dest, &addr.sin_addr);
+
+    for ( int i = 0; i < NUMBER_OF_TEST_RUNS; i++ ) {
+        if ( sendto(br_sock, 
+                    buf, 
+                    USHRT_MAX - 200, 
+                    0, 
+                    (struct sockaddr*)&addr, 
+                    sizeof(addr)) == -1 ) {
+            perror("Cant send one packet!\n");
+        }
+    }
+
+    return 0;
+}

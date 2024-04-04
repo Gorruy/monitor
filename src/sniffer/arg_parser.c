@@ -75,7 +75,7 @@ parsed_args_t parse_args( int argc, char* argv[] )
                   args.ip_source = optarg;
               }
               else {
-                  WRONG_OPT_EXIT("Wrong value of reqired ip source address!\n");
+                  WRONG_OPT_EXIT("Wrong value of required ip source address!\n");
               }
               break;
           case IPDEST:
@@ -116,6 +116,9 @@ parsed_args_t parse_args( int argc, char* argv[] )
                      "                    PORT can be any positive number\n"
                     );
               exit(EXIT_SUCCESS);
+            case '?':
+                printf("Try --help\n");
+                exit(EXIT_FAILURE);
         }
     }
 

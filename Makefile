@@ -8,6 +8,7 @@ RPSTLDFLAGS = -lrt
 SRCDIR = src/
 RPSTSRCDIR = src/representer/
 BINDIR = bin/
+TESTDIR = tests/
 BUILDDIR = build/
 INCLDIR = include/
 
@@ -15,11 +16,11 @@ prefix = /usr/local
 
 SNFRSRCS = $(wildcard $(SRCDIR)sniffer/*.c)
 RPSTSRCS = $(wildcard $(SRCDIR)representer/*.c)
+TESTSRCS = $(wildcard $(TESTDIR)*.c)
 
 SNFROBJS := $(SNFRSRCS:.c=.o)
 RPSTOBJS := $(RPSTSRCS:.c=.o)
-
-.PHONY: clean trueclean all install build
+TESTOBJS := $(TESTSRCS:.c=.o)
 
 all: $(BINDIR) build install
 
@@ -44,6 +45,11 @@ $(BINDIR):
 clean:
 	find . -name \*.o -type f -delete
 
+tests: build $(TESTOBJS)
+	$(CC) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.o $(SNFRLDFLAGS) -o $(TESTDIR)$@
+
 trueclean: clean
 	rm $(BINDIR)/*
+
+.PHONY: clean trueclean all install build tests
 	
