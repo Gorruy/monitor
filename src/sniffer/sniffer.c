@@ -24,6 +24,7 @@
 #define UDP_IN_IP_HDR 17
 #define IPV4_VERSION 4
 #define MAX_IP_LEN 40
+#define MAX_HEADERS_SIZE 66
 
 #define ERROR_EXIT(message) do { \
     perror(message); \
@@ -123,7 +124,7 @@ void* sniff( void* args_struct_ptr )
     }
 
     while (1) {
-        memset(buffer, 0, USHRT_MAX);
+        memset(buffer, 0, MAX_HEADERS_SIZE);
   
         int pkt_len = recvfrom(raw_socket, 
                                buffer, 

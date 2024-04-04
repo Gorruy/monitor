@@ -15,7 +15,7 @@
 #define NOTVALIDSOCKET(s) ((s) < 0)
 #define CLOSESOCKET(s) close(s)
 #define SOCKET int 
-#define NUMBER_OF_TEST_RUNS 1000
+#define NUMBER_OF_TEST_RUNS 100000
 
 
 int main(int argc, char* argv[] )
@@ -49,7 +49,7 @@ int main(int argc, char* argv[] )
                     USHRT_MAX - 200, 
                     0, 
                     (struct sockaddr*)&addr, 
-                    sizeof(addr)) == -1 ) {
+                    sizeof(addr)) < 0) {
             perror("Cant send one packet!\n");
         }
     }
