@@ -22,13 +22,9 @@ SNFROBJS := $(SNFRSRCS:.c=.o)
 RPSTOBJS := $(RPSTSRCS:.c=.o)
 TESTOBJS := $(TESTSRCS:.c=.o)
 
-all: $(BINDIR) build install
+all: $(BINDIR) build
 
 build: sniffer representer
-
-install: build
-	install -D $(BINDIR)* \
-		$(DESTDIR)$(prefix)/bin/
 
 sniffer: $(SNFROBJS)
 	$(CC) $(CFLAGS) $^ $(SNFRLDFLAGS) -o $(BINDIR)$@
@@ -44,6 +40,12 @@ $(BINDIR):
 
 clean:
 	find . -name \*.o -type f -delete
+
+install: build
+	install -D $(BINDIR)sniffer \
+		$(DESTDIR)$(prefix)/bin/sniffer & \
+	install -D $(BINDIR)representer \
+		$(DESTDIR)$(prefix)/bin/representer
 
 tests: build $(TESTOBJS)
 	$(CC) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.o $(SNFRLDFLAGS) -o $(TESTDIR)$@

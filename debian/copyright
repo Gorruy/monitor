@@ -14,10 +14,15 @@ Files:     .gitignore
            include/sender.h
            include/sniffer.h
            src/representer/main.c
+           src/representer/main.o
            src/sniffer/arg_parser.c
+           src/sniffer/arg_parser.o
            src/sniffer/main.c
+           src/sniffer/main.o
            src/sniffer/sender.c
+           src/sniffer/sender.o
            src/sniffer/sniffer.c
+           src/sniffer/sniffer.o
            tests/run_tests.sh
            tests/tests
            tests/tests.c

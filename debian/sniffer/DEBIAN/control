@@ -2,7 +2,8 @@ Package: sniffer
 Version: 0.1-1
 Architecture: amd64
 Maintainer: Vladimir Mimikin <>
-Installed-Size: 13
+Installed-Size: 45
+Depends: libc6 (>= 2.4)
 Section: unknown
 Priority: optional
 Multi-Arch: foreign

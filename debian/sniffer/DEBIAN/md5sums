@@ -1,3 +1,5 @@
-248108bf08461ebde4a7faf59febc194  usr/share/doc/sniffer/README.Debian
-77aedbf5d76e407d621735eec5362d68  usr/share/doc/sniffer/changelog.Debian.gz
-55c2e4a6e70a6e950f2606ba3e446e2f  usr/share/doc/sniffer/copyright
+d8596374ba455bd8fc37bccead444006  usr/bin/representer
+b6e24112ed92ce21e00023ce0564ae48  usr/bin/sniffer
+1d83d652b35603e1077cdcaf9a06f271  usr/share/doc/sniffer/README.Debian
+5c9ea1e595b6f06323650625f4fcd1f7  usr/share/doc/sniffer/changelog.Debian.gz
+964d619a5e20e1792c7835f6efa8ee08  usr/share/doc/sniffer/copyright
