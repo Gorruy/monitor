@@ -49,7 +49,7 @@ tests: build $(TESTOBJS)
 	$(CC) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.o $(SNFRLDFLAGS) -o $(TESTDIR)$@
 
 trueclean: clean
-	rm $(BINDIR)/*
+	rm $(BINDIR)*
 
 .PHONY: clean trueclean all install build tests
 	
