@@ -27,6 +27,11 @@ int main(int argc, char* argv[] )
 
     SOCKET br_sock = socket( AF_INET, SOCK_DGRAM, 0);
 
+    if ( br_sock < 0 ) {
+        perror("Error in socket creation!");
+        exit(EXIT_FAILURE);
+    }
+
     int broadcast_enable = 1;
     int set_res = setsockopt(br_sock, 
                              SOL_SOCKET, 
@@ -46,7 +51,7 @@ int main(int argc, char* argv[] )
     for ( int i = 0; i < NUMBER_OF_TEST_RUNS; i++ ) {
         if ( sendto(br_sock, 
                     buf, 
-                    USHRT_MAX - 200, 
+                    USHRT_MAX - 66, 
                     0, 
                     (struct sockaddr*)&addr, 
                     sizeof(addr)) < 0) {

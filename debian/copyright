@@ -5,7 +5,6 @@ Source: <url://example.com>
 # Please double check copyright with the licensecheck(1) command.
 
 Files:     .gitignore
-           .vscode/settings.json
            Makefile
            README.md
            bin/representer

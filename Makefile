@@ -22,9 +22,9 @@ SNFROBJS := $(SNFRSRCS:.c=.o)
 RPSTOBJS := $(RPSTSRCS:.c=.o)
 TESTOBJS := $(TESTSRCS:.c=.o)
 
-all: $(BINDIR) build
+all: build tests
 
-build: sniffer representer
+build: $(BINDIR) sniffer representer
 
 sniffer: $(SNFROBJS)
 	$(CC) $(CFLAGS) $^ $(SNFRLDFLAGS) -o $(BINDIR)$@
@@ -47,10 +47,12 @@ install: build
 	install -D $(BINDIR)representer \
 		$(DESTDIR)$(prefix)/bin/representer
 
+tests: CFLAGS += -DDEBUG -g
 tests: build $(TESTOBJS)
 	$(CC) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.o $(SNFRLDFLAGS) -o $(TESTDIR)$@
 
 trueclean: clean
+	find ${TESTDIR} -type f -not \( -name '*.c' -or -name '*.sh' \) -delete;
 	rm $(BINDIR)*
 
 .PHONY: clean trueclean all install build tests
