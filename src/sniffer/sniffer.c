@@ -179,9 +179,11 @@ void* sniff( void* args_struct_ptr )
                                args->req_port_source, 
                                args->req_port_dest,  
                                buffer, 
-                               addr_info)) {
-            *(args->pkt_len_ptr) += pkt_len;
-            *(args->pkt_num_ptr) += 1;
+                               addr_info) ) {
+            pthread_mutex_lock(args->pkt_mtx);
+            *(args->pkt_len_ptr) = pkt_len;
+            pthread_cond_signal(args->data_ready_sig);
+            pthread_mutex_unlock(args->pkt_mtx);
         }
     }
 

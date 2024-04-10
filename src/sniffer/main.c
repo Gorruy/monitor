@@ -37,9 +37,14 @@ int run_threads( parsed_args_t reqs )
     volatile size_t pkt_len = 0;
     volatile size_t pkt_num = 0;
 
+    pthread_mutex_t pkt_mtx;
+    pthread_cond_t pkt_sig;
+
     sender_args_t args_for_sender = {
         .pkt_len_ptr = &pkt_len,
         .pkt_num_ptr = &pkt_num,
+        .pkt_mtx = &pkt_mtx,
+        .data_ready_sig = &pkt_sig
     };
     sniff_args_t args_for_sniffer = {
         .interface = reqs.interface,
@@ -49,7 +54,12 @@ int run_threads( parsed_args_t reqs )
         .req_port_source = reqs.port_source,
         .pkt_len_ptr = &pkt_len,
         .pkt_num_ptr = &pkt_num,
+        .pkt_mtx = &pkt_mtx,
+        .data_ready_sig = &pkt_sig
     };
+
+    pthread_mutex_init(&pkt_mtx, NULL);
+    pthread_cond_init(&pkt_sig, NULL);
 
     if ( pthread_create(&sniffing_thread, 
                         NULL, 
@@ -70,6 +80,9 @@ int run_threads( parsed_args_t reqs )
     if ( pthread_join( sending_thread, NULL ) != 0 ) {
         ERROR_EXIT("Thread join error");    
     }
+
+    pthread_mutex_destroy(&pkt_mtx);
+    pthread_cond_destroy(&pkt_sig);
 
     return 0;
 }

@@ -25,8 +25,10 @@
 #include <string.h>
 
 typedef struct sender_args {
-    volatile size_t* pkt_len_ptr;
-    volatile size_t* pkt_num_ptr;
+    volatile size_t *pkt_len_ptr;
+    volatile size_t *pkt_num_ptr;
+    pthread_mutex_t *pkt_mtx;
+    pthread_cond_t *data_ready_sig;
 } sender_args_t;
 
 void* send_data_to_representer(void*);
