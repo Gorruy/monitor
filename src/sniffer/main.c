@@ -1,3 +1,21 @@
+/*
+* Sniffer is prrogramm that can collect data about incoming udp packages
+* Copyright (C) 2024  Vladimir Mimikin
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <pthread.h>
 #include <pthread.h>
 #include <errno.h>
@@ -11,8 +29,6 @@
     exit(EXIT_FAILURE); \
 } while(0)
 
-pthread_mutex_t stat_mtx;
-
 int run_threads( parsed_args_t reqs )
 {
     pthread_t sniffing_thread;
@@ -20,8 +36,6 @@ int run_threads( parsed_args_t reqs )
 
     volatile size_t pkt_len = 0;
     volatile size_t pkt_num = 0;
-    pthread_mutex_t pkt_mtx;
-    pthread_cond_t pkt_cond;
 
     sender_args_t args_for_sender = {
         .pkt_len_ptr = &pkt_len,
@@ -36,14 +50,17 @@ int run_threads( parsed_args_t reqs )
         .pkt_num_ptr = &pkt_num,
     };
 
-    pthread_mutex_init(&pkt_mtx, NULL);
-    pthread_cond_init(&pkt_cond, NULL);
-
-    if ( pthread_create( &sniffing_thread, NULL, &sniff, &args_for_sniffer ) != 0 ) {
+    if ( pthread_create(&sniffing_thread, 
+                        NULL, 
+                        &sniff, 
+                        &args_for_sniffer) != 0 ) {
         ERROR_EXIT("Sniffing thread creation error!");
     }
-    if ( pthread_create( &sending_thread, NULL, &send_data_to_representer, &args_for_sender ) != 0 ) {
-        ERROR_EXIT("Thread creation error!");
+    if ( pthread_create(&sending_thread, 
+                        NULL, 
+                        &send_data_to_representer, 
+                        &args_for_sender) != 0) {
+        ERROR_EXIT("Representer thread creation error!");
     }
 
     if ( pthread_join( sniffing_thread, NULL ) != 0 ) {
@@ -53,17 +70,22 @@ int run_threads( parsed_args_t reqs )
         ERROR_EXIT("Thread join error");    
     }
 
-    pthread_mutex_destroy(&pkt_mtx);
-    pthread_cond_destroy(&pkt_cond);
-
     return 0;
 }
 
 
 int main( int argc, char *argv[] )
 {
-    parsed_args_t args = parse_args( argc, argv );
+    parsed_args_t args = { NULL };
+    
+    if ( argc == 1 ) {
+        printf("Sniffing every incoming packet!\n");
+    }
+    else if ( !parse_args( argc, argv, &args ) ) {
+        ERROR_EXIT("Error while parsing options");
+    }
 
+    printf("Sniffing started!\n");
     run_threads( args );
 
     return 0;

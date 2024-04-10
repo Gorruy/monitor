@@ -106,7 +106,7 @@ STATIC int packet_meets_reqs(const char* req_ip_source,
     if ( req_ip_dest && strcmp( req_ip_dest, ip_dest ) != 0 ) {
         return 0;
     }
-    if ( req_ip_dest && strcmp( req_ip_dest, ip_source ) != 0 ) {
+    if ( req_ip_source && strcmp( req_ip_source, ip_source ) != 0 ) {
         return 0;
     }
   
@@ -114,10 +114,10 @@ STATIC int packet_meets_reqs(const char* req_ip_source,
     struct udphdr* udp;
     udp = (struct udphdr*)( packet + sizeof(struct ethhdr) + ip_hdr_offset );
   
-    if ( req_port_dest && atoi( req_port_dest) != ntohs(udp->dest) ) {
+    if ( req_port_dest && atoi( req_port_dest ) != ntohs(udp->dest) ) {
         return 0;
     }
-    if ( req_port_source && atoi( req_port_source) != ntohs(udp->source) ) {
+    if ( req_port_source && atoi( req_port_source ) != ntohs(udp->source) ) {
         return 0;
     }
      

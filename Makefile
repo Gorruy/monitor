@@ -18,28 +18,32 @@ SNFRSRCS = $(wildcard $(SRCDIR)sniffer/*.c)
 RPSTSRCS = $(wildcard $(SRCDIR)representer/*.c)
 TESTSRCS = $(wildcard $(TESTDIR)*.c)
 
-SNFROBJS := $(SNFRSRCS:.c=.o)
-RPSTOBJS := $(RPSTSRCS:.c=.o)
-TESTOBJS := $(TESTSRCS:.c=.o)
+SNFROBJS := $(SNFRSRCS:$(SRCDIR)sniffer/%.c=$(BUILDDIR)sniffer/%.o)
+RPSTOBJS := $(RPSTSRCS:$(SRCDIR)representer/%.c=$(BUILDDIR)representer/%.o)
+TESTOBJS := $(TESTSRCS:$(TESTDIR)%.c=$(BUILDDIR)tests/%.o)
 
 all: build tests
 
-build: $(BINDIR) sniffer representer
+build: $(BUILDDIR) $(BINDIR) sniffer representer
 
 sniffer: $(SNFROBJS)
-	$(CC) $(CFLAGS) $^ $(SNFRLDFLAGS) -o $(BINDIR)$@
+	$(CC) $(CFLAGS) -I./$(INCLDIR) $^ -o $(BINDIR)$@ $(SNFRLDFLAGS)
 
 representer: $(RPSTOBJS)
-	$(CC) $(CFLAGS) $^ $(RPSTLDFLAGS) -o $(BINDIR)$@
+	$(CC) $(CFLAGS) -I./$(INCLDIR) $^ -o $(BINDIR)$@ $(RPSTLDFLAGS)
 
-%.o: %.c
+$(BUILDDIR)sniffer/%.o: $(SRCDIR)sniffer/%.c
+	$(CC) $(CFLAGS) -I./$(INCLDIR) -c $< -o $@
+$(BUILDDIR)representer/%.o: $(SRCDIR)representer/%.c
+	$(CC) $(CFLAGS) -I./$(INCLDIR) -c $< -o $@
+$(BUILDDIR)tests/%.o: $(TESTDIR)%.c
 	$(CC) $(CFLAGS) -I./$(INCLDIR) -c $< -o $@
 
 $(BINDIR):
 	@mkdir -p $(BINDIR)
 
-clean:
-	find . -name \*.o -type f -delete
+$(BUILDDIR):
+	@mkdir -p $(BUILDDIR)sniffer $(BUILDDIR)representer $(BUILDDIR)tests
 
 install: build
 	install -D $(BINDIR)sniffer \
@@ -49,11 +53,13 @@ install: build
 
 tests: CFLAGS += -DDEBUG -g
 tests: build $(TESTOBJS)
-	$(CC) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.o $(SNFRLDFLAGS) -o $(TESTDIR)$@
+	$(CC) $(CFLAGS) $(TESTOBJS) $(SNFROBJS) $(RPSTOBJS) $(SNFRLDFLAGS) -o $(TESTDIR)$@
+
+clean:
+	rm -rf ${BUILDDIR}
 
 trueclean: clean
-	find ${TESTDIR} -type f -not \( -name '*.c' -or -name '*.sh' \) -delete;
-	rm $(BINDIR)*
+	rm -rf $(BINDIR)
 
 .PHONY: clean trueclean all install build tests
 	

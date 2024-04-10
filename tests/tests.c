@@ -21,7 +21,8 @@
 int main(int argc, char* argv[] )
 {
     struct sockaddr_in addr;
-    parsed_args_t args = parse_args(argc, argv);
+    parsed_args_t args;
+    parse_args(argc, argv, &args);
 
     char *buf = (char*)malloc(USHRT_MAX + 1);
 

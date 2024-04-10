@@ -1,3 +1,21 @@
+/*
+* Sniffer is prrogramm that can collect data about incoming udp packages
+* Copyright (C) 2024  Vladimir Mimikin
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,9 +26,9 @@
 
 #include "arg_parser.h"
 
-#define WRONG_OPT_EXIT(message) do { \
+#define WRONG_OPT_RETURN(message) do { \
     printf(message); \
-    exit(EXIT_FAILURE); \
+    return 0; \
 } while(0)
 
 
@@ -38,18 +56,16 @@ static int is_valid_port( char* port )
     return 1;
 }
 
-parsed_args_t parse_args( int argc, char* argv[] ) 
+int parse_args( int argc, char *argv[], parsed_args_t *args ) 
 {
     if ( argc > 9 ) {
-        WRONG_OPT_EXIT("Too many options!! Try --help to get info on usage\n");
+        WRONG_OPT_RETURN("Too many options!! Try --help to get info on usage\n");
     }
 
-    parsed_args_t args = {
-        .ip_dest = NULL,
-        .ip_source = NULL,
-        .port_dest = NULL,
-        .port_source = NULL 
-    };
+    args->ip_dest = NULL;
+    args->ip_source = NULL;
+    args->port_dest = NULL;
+    args->port_source = NULL;
 
     enum opt_names {
         IPSRC,
@@ -72,34 +88,34 @@ parsed_args_t parse_args( int argc, char* argv[] )
         switch (opt) {
           case IPSRC:
               if ( is_valid_ip(optarg) ) {
-                  args.ip_source = optarg;
+                  args->ip_source = optarg;
               }
               else {
-                  WRONG_OPT_EXIT("Wrong value of required ip source address!\n");
+                  WRONG_OPT_RETURN("Wrong value of required ip source address!\n");
               }
               break;
           case IPDEST:
               if ( is_valid_ip(optarg) ) {
-                  args.ip_dest = optarg;
+                  args->ip_dest = optarg;
               }
               else {
-                  WRONG_OPT_EXIT("Wrong value of reqired ip dest address!\n");
+                  WRONG_OPT_RETURN("Wrong value of reqired ip dest address!\n");
               }
               break;
           case PORTSRC:
               if ( is_valid_port(optarg) ) {
-                  args.port_source = optarg;
+                  args->port_source = optarg;
               }
               else {
-                  WRONG_OPT_EXIT("Wrong value of reqired source port value!\n");
+                  WRONG_OPT_RETURN("Wrong value of reqired source port!\n");
               }
               break;
           case PORTDEST:
               if ( is_valid_port(optarg) ) {
-                  args.port_dest = optarg;
+                  args->port_dest = optarg;
               }
               else {
-                  WRONG_OPT_EXIT("Wrong value of reqired dest port value!\n");
+                  WRONG_OPT_RETURN("Wrong value of reqired dest port!\n");
               }
               break;
           case 'h':
@@ -115,12 +131,11 @@ parsed_args_t parse_args( int argc, char* argv[] )
                      "--ipsrc [PORT]      defines source ip address for filtering\n"
                      "                    PORT can be any positive number\n"
                     );
-              exit(EXIT_SUCCESS);
-            case '?':
-                printf("Try --help\n");
-                exit(EXIT_FAILURE);
+              return 0;
+          case '?':
+              WRONG_OPT_RETURN("Try --help\n");
         }
     }
 
-    return args;
+    return 1;
 }

@@ -26,6 +26,6 @@ typedef struct parsed_args {
     char* port_source;
 } parsed_args_t;
 
-parsed_args_t parse_args( int, char**);
+int parse_args( int, char**, parsed_args_t* );
 
 #endif
