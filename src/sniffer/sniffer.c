@@ -51,8 +51,8 @@
 
 STATIC int packet_meets_reqs(const char* req_ip_source,
                              const char* req_ip_dest,
-                             const char* req_port_source,
-                             const char* req_port_dest, 
+                             size_t req_port_source,
+                             size_t req_port_dest, 
                              uint8_t* packet, 
                              struct sockaddr_ll addr_info)
 {
@@ -79,20 +79,10 @@ STATIC int packet_meets_reqs(const char* req_ip_source,
         return 0;
     }
   
-    if ( ips->version == IPV4_VERSION )
-    {
-        inet_ntop( AF_INET, &(ips->daddr), ip_dest, MAX_IP_LEN );
-        inet_ntop( AF_INET, &(ips->saddr), ip_source, MAX_IP_LEN );
-  
+    if ( ips->version == IPV4_VERSION ) {
         ip_hdr_offset = ips->ihl*4;
     }
-    else
-    {
-        struct ipv6hdr* ips6 = (struct ipv6hdr*)( packet + sizeof(struct ethhdr) );
-  
-        inet_ntop( AF_INET6, &(ips6->daddr), ip_dest, MAX_IP_LEN );
-        inet_ntop( AF_INET6, &(ips6->saddr), ip_source, MAX_IP_LEN );
-  
+    else {
         ip_hdr_offset = sizeof(struct ipv6hdr);
     } 
   
@@ -107,10 +97,10 @@ STATIC int packet_meets_reqs(const char* req_ip_source,
     struct udphdr* udp;
     udp = (struct udphdr*)( packet + sizeof(struct ethhdr) + ip_hdr_offset );
   
-    if ( req_port_dest && atoi( req_port_dest ) != ntohs(udp->dest) ) {
+    if ( req_port_dest && req_port_dest != ntohs(udp->dest) ) {
         return 0;
     }
-    if ( req_port_source && atoi( req_port_source ) != ntohs(udp->source) ) {
+    if ( req_port_source && req_port_source != ntohs(udp->source) ) {
         return 0;
     }
      

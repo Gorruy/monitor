@@ -31,8 +31,8 @@ typedef struct sniff_args {
     char *interface;
     char *req_ip_dest;
     char *req_ip_source;
-    char *req_port_dest;
-    char *req_port_source;
+    size_t req_port_dest;
+    size_t req_port_source;
     volatile size_t *pkt_len_ptr;
     volatile size_t *pkt_num_ptr;
 } sniff_args_t;

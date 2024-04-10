@@ -32,11 +32,12 @@
 #include "helpers.h"
 
 
-static int is_valid_ip( char* ip )
+static int is_valid_ip( char* ip, char* binary_res )
 {
     char buf[100];
     if ( inet_pton( AF_INET6, ip, buf ) > 0 ||
          inet_pton( AF_INET, ip, buf ) > 0 ) {
+        strcpy( binary_res, buf );
         return 1;
     }
     else {
@@ -91,8 +92,8 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
 
     args->ip_dest = NULL;
     args->ip_source = NULL;
-    args->port_dest = NULL;
-    args->port_source = NULL;
+    args->port_dest = 0;
+    args->port_source = 0;
 
     enum opt_names {
         IPSRC,
@@ -123,24 +124,18 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               }
               break;
           case IPSRC:
-              if ( is_valid_ip(optarg) ) {
-                  args->ip_source = optarg;
-              }
-              else {
+              if ( !is_valid_ip(optarg, args->ip_source) ) {
                   WRONG_OPT_RETURN("Wrong value of required ip source address!\n");
               }
               break;
           case IPDEST:
-              if ( is_valid_ip(optarg) ) {
-                  args->ip_dest = optarg;
-              }
-              else {
+              if ( !is_valid_ip(optarg, args->ip_dest) ) {
                   WRONG_OPT_RETURN("Wrong value of reqired ip dest address!\n");
               }
               break;
           case PORTSRC:
               if ( is_valid_port(optarg) ) {
-                  args->port_source = optarg;
+                  args->port_source = atol(optarg);
               }
               else {
                   WRONG_OPT_RETURN("Wrong value of reqired source port!\n");
@@ -148,7 +143,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               break;
           case PORTDEST:
               if ( is_valid_port(optarg) ) {
-                  args->port_dest = optarg;
+                  args->port_dest = atol(optarg);
               }
               else {
                   WRONG_OPT_RETURN("Wrong value of reqired dest port!\n");

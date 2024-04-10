@@ -23,8 +23,8 @@ typedef struct parsed_args {
     char* interface;
     char* ip_dest;
     char* ip_source;
-    char* port_dest;
-    char* port_source;
+    size_t port_dest;
+    size_t port_source;
 } parsed_args_t;
 
 int parse_args( int, char**, parsed_args_t* );
