@@ -20,6 +20,7 @@
 #define APRS
 
 typedef struct parsed_args {
+    char* interface;
     char* ip_dest;
     char* ip_source;
     char* port_dest;

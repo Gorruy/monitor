@@ -10,11 +10,8 @@
 #include <stdio.h>
 
 #include "arg_parser.h"
+#include "helpers.h"
 
-
-#define NOTVALIDSOCKET(s) ((s) < 0)
-#define CLOSESOCKET(s) close(s)
-#define SOCKET int 
 #define NUMBER_OF_TEST_RUNS 100000
 
 

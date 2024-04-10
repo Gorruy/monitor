@@ -42,6 +42,7 @@ int run_threads( parsed_args_t reqs )
         .pkt_num_ptr = &pkt_num,
     };
     sniff_args_t args_for_sniffer = {
+        .interface = reqs.interface,
         .req_ip_dest = reqs.ip_dest,
         .req_ip_source = reqs.ip_source,
         .req_port_dest = reqs.port_dest,

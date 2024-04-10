@@ -27,27 +27,20 @@
 #include <linux/if_packet.h>
 #include <ctype.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include <fcntl.h>
 #include <mqueue.h>
 #include <errno.h>
 
-#include <getopt.h>
-
 #include "sniffer.h"
+#include "helpers.h"
 
-#define NOTVALIDSOCKET(s) ((s) < 0)
-#define CLOSESOCKET(s) close(s)
-#define SOCKET int 
 #define UDP_IN_IP_HDR 17
 #define IPV4_VERSION 4
 #define MAX_IP_LEN 40
 #define MAX_HEADERS_SIZE 66
-
-#define ERROR_EXIT(message) do { \
-    perror(message); \
-    exit(EXIT_FAILURE); \
-} while(0)
 
 #ifdef DEBUG
 #define STATIC static
@@ -130,22 +123,46 @@ void* sniff( void* args_struct_ptr )
       packages of udp protocol for matching with requirements 
       if some are given  */
 
-    sniff_args_t* args = (sniff_args_t*)args_struct_ptr;
-
     struct sockaddr_ll addr_info;
-    memset( &addr_info, 0, sizeof(struct sockaddr_ll) );
+    struct ifreq rq;
+    struct packet_mreq mreq;
 
+    sniff_args_t* args = (sniff_args_t*)args_struct_ptr;
     socklen_t info_len = sizeof(struct sockaddr_ll);
+
+    memset( &addr_info, 0, sizeof(struct sockaddr_ll) );
+    memset( &rq, 0, sizeof(struct ifreq) );
+    memset( &mreq,0, sizeof(struct packet_mreq) );
 
     uint8_t* buffer = (uint8_t*)malloc(USHRT_MAX); // 65535 for max size of udp packet
     if (!buffer) {
-      ERROR_EXIT("Malloc error!");
+      ERROR_RETURN("Malloc error!\n");
     }
 
     SOCKET raw_socket = socket( AF_PACKET, SOCK_RAW, htons(ETH_P_ALL) );
-
     if ( NOTVALIDSOCKET(raw_socket) ) {
-      ERROR_EXIT("Error in socket creation");
+      ERROR_RETURN("Error in socket creation\n");
+    }
+
+    strcpy(rq.ifr_name, args->interface);
+    if ( setsockopt(raw_socket, 
+                    SOL_SOCKET, 
+                    SO_BINDTODEVICE, 
+                    (void *)&rq, 
+                    sizeof(rq)) < 0) {
+        ERROR_RETURN("Can't bind to interface!\n");
+    }
+
+    mreq.mr_ifindex = if_nametoindex(args->interface);
+    mreq.mr_type = PACKET_MR_PROMISC;
+    mreq.mr_alen = 6;
+
+    if ( setsockopt(raw_socket, 
+                    SOL_PACKET, 
+                    PACKET_MR_PROMISC,
+                    (void*)&mreq, 
+                    (socklen_t)sizeof(struct packet_mreq)) < 0 ) {
+        ERROR_RETURN("Can't turn socket to promiscouous mode!\n");
     }
 
     while (1) {
@@ -160,7 +177,7 @@ void* sniff( void* args_struct_ptr )
         if ( pkt_len == -1 )
         {
             if ( errno != EAGAIN ) {
-                ERROR_EXIT("Error in recvfrom");
+                ERROR_RETURN("Error in recvfrom!\n");
             }
             else {
                 continue;

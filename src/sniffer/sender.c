@@ -21,14 +21,10 @@
 #include <errno.h>
 
 #include "sender.h"
+#include "helpers.h"
 
 #define SEND_Q_NAME "/DataQueue"
 #define RECV_Q_NAME "/NoteQueue"
-
-#define ERROR_EXIT(message) do { \
-    perror(message); \
-    exit(EXIT_FAILURE); \
-} while(0)
 
 
 void* send_data_to_representer(void* args_struct_ptr)

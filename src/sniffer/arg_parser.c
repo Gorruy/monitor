@@ -17,19 +17,19 @@
 */
 
 #include <getopt.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include "arg_parser.h"
-
-#define WRONG_OPT_RETURN(message) do { \
-    printf(message); \
-    return 0; \
-} while(0)
+#include "helpers.h"
 
 
 static int is_valid_ip( char* ip )
@@ -56,8 +56,35 @@ static int is_valid_port( char* port )
     return 1;
 }
 
+static int int_exist( const char* interface )
+{
+    struct ifreq rq;
+    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (NOTVALIDSOCKET(sock)) {
+        CLOSESOCKET(sock);
+        perror("Can't create socket!");
+        return 0;
+    }
+
+    memset(&rq, 0, sizeof(struct ifreq));
+    strcpy(rq.ifr_name, interface);
+    if ( ioctl(sock, SIOCGIFFLAGS, &rq ) < 0) {
+        CLOSESOCKET(sock);
+        return 0;
+    }
+
+    if ( rq.ifr_flags && IFF_UP ) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 int parse_args( int argc, char *argv[], parsed_args_t *args ) 
 {
+
     if ( argc > 9 ) {
         WRONG_OPT_RETURN("Too many options!! Try --help to get info on usage\n");
     }
@@ -75,6 +102,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
     };
 
     const struct option options[] = {
+        { .name = "interface", .has_arg = required_argument, .flag = 0, .val = 'i' },
         { .name = "ipsrc", .has_arg = required_argument, .flag = 0, .val = IPSRC },
         { .name = "ipdest", .has_arg = required_argument, .flag = 0, .val = IPDEST },
         { .name = "portsrc", .has_arg = required_argument, .flag = 0, .val = PORTSRC },
@@ -86,6 +114,14 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
     int opt;
     while ((opt = getopt_long(argc, argv, "1:2:3:4:", options, NULL)) != -1 ) {
         switch (opt) {
+          case 'i':
+              if ( int_exist(optarg) ) {
+                  args->interface = optarg;
+              }
+              else {
+                  WRONG_OPT_RETURN("Interface does not exist!\n");
+              }
+              break;
           case IPSRC:
               if ( is_valid_ip(optarg) ) {
                   args->ip_source = optarg;
@@ -122,6 +158,8 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               printf("Usage: sniffer [OPTION]... [ADDRESS]...\n"
                      "Collect statistic on incoming udp packages\n"
                      "pass it to representer\n\n"
+                     "--interface [NAME]  defines interface name\n"
+                     "                    NAME can be a string that represents existing interface name\n"
                      "--ipsrc [ADDRESS]   defines source ip address for filtering\n"
                      "                    ADDRESS can be ipv4 or ipv6 address in standard format\n"
                      "--ipdest [ADDRESS]  defines destination ip address for filtering\n"
@@ -135,6 +173,10 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
           case '?':
               WRONG_OPT_RETURN("Try --help\n");
         }
+    }
+
+    if ( !args->interface ) {
+        WRONG_OPT_RETURN("You should specify interface!\n");
     }
 
     return 1;
