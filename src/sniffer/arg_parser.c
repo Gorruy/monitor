@@ -26,18 +26,22 @@
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <net/if.h>
 
 #include "arg_parser.h"
 #include "helpers.h"
 
 
-static int is_valid_ip( char* ip, char* binary_res )
+static int is_valid_ip( char* ip , char* res )
 {
-    char buf[100];
-    if ( inet_pton( AF_INET6, ip, buf ) > 0 ||
-         inet_pton( AF_INET, ip, buf ) > 0 ) {
-        strcpy( binary_res, buf );
+    struct in6_addr addr6;
+    struct in_addr addr4;
+
+    if ( inet_pton( AF_INET6, ip, &addr6 ) > 0 ) {
+        memcpy( res, &addr6, MAX_ADDR_SZ );
+        return 1;
+    }
+    else if ( inet_pton( AF_INET, ip, &addr4 ) > 0 ) {
+        memcpy( res, &addr4, sizeof(uint32_t) );
         return 1;
     }
     else {
@@ -57,7 +61,7 @@ static int is_valid_port( char* port )
     return 1;
 }
 
-static int int_exist( const char* interface )
+static int int_exist( char* interface )
 {
     struct ifreq rq;
     SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -86,14 +90,11 @@ static int int_exist( const char* interface )
 int parse_args( int argc, char *argv[], parsed_args_t *args ) 
 {
 
-    if ( argc > 9 ) {
+    if ( argc > 10 ) {
         WRONG_OPT_RETURN("Too many options!! Try --help to get info on usage\n");
     }
 
-    args->ip_dest = NULL;
-    args->ip_source = NULL;
-    args->port_dest = 0;
-    args->port_source = 0;
+    memset( args, 0, sizeof(parsed_args_t) );
 
     enum opt_names {
         IPSRC,
@@ -117,7 +118,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
         switch (opt) {
           case 'i':
               if ( int_exist(optarg) ) {
-                  args->interface = optarg;
+                  strcpy(args->interface, optarg);
               }
               else {
                   WRONG_OPT_RETURN("Interface does not exist!\n");

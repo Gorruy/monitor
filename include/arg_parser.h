@@ -19,10 +19,14 @@
 #ifndef APRS
 #define APRS
 
+#include <net/if.h>
+
+#include "helpers.h"
+
 typedef struct parsed_args {
-    char* interface;
-    char* ip_dest;
-    char* ip_source;
+    char interface[IFNAMSIZ];
+    char ip_dest[MAX_ADDR_SZ];
+    char ip_source[MAX_ADDR_SZ];
     size_t port_dest;
     size_t port_source;
 } parsed_args_t;
