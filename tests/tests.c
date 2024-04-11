@@ -43,7 +43,7 @@ int main(int argc, char* argv[] )
 
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(atoi(args.port_dest));
+    addr.sin_port = args.port_dest;
     inet_pton(AF_INET, args.ip_dest, &addr.sin_addr);
 
     for ( int i = 0; i < NUMBER_OF_TEST_RUNS; i++ ) {

@@ -26,7 +26,7 @@
 #include "helpers.h"
 
 
-int run_threads( parsed_args_t reqs )
+int run_threads( parsed_args_t *reqs )
 {
     int sniff_status;
     int send_status;
@@ -47,11 +47,11 @@ int run_threads( parsed_args_t reqs )
         .data_ready_sig = &pkt_sig
     };
     sniff_args_t args_for_sniffer = {
-        .interface = reqs.interface,
-        .req_ip_dest = reqs.ip_dest,
-        .req_ip_source = reqs.ip_source,
-        .req_port_dest = reqs.port_dest,
-        .req_port_source = reqs.port_source,
+        .interface = reqs->interface,
+        .req_ip_dest = reqs->ip_dest,
+        .req_ip_source = reqs->ip_source,
+        .req_port_dest = reqs->port_dest,
+        .req_port_source = reqs->port_source,
         .pkt_len_ptr = &pkt_len,
         .pkt_num_ptr = &pkt_num,
         .pkt_mtx = &pkt_mtx,
@@ -94,14 +94,14 @@ int run_threads( parsed_args_t reqs )
 
 int main( int argc, char *argv[] )
 {
-    parsed_args_t args = { NULL };
+    parsed_args_t args;
     
     if ( !parse_args( argc, argv, &args ) ) {
         ERROR_EXIT("Error while parsing options");
     }
 
     printf("Sniffing started!\n");
-    if ( !run_threads( args ) ) {
+    if ( !run_threads( &args ) ) {
         exit(EXIT_FAILURE);
     }
 

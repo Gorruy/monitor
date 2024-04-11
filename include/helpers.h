@@ -24,5 +24,6 @@
 #define NOTVALIDSOCKET(s) ((s) < 0)
 #define CLOSESOCKET(s) close(s)
 #define SOCKET int 
+#define MAX_ADDR_SZ 16
 
 #endif
