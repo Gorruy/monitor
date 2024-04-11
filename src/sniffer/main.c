@@ -23,14 +23,14 @@
 #include "sniffer.h"
 #include "sender.h"
 #include "arg_parser.h"
+#include "helpers.h"
 
-#define ERROR_EXIT(message) do { \
-    perror(message); \
-    exit(EXIT_FAILURE); \
-} while(0)
 
 int run_threads( parsed_args_t reqs )
 {
+    int sniff_status;
+    int send_status;
+
     pthread_t sniffing_thread;
     pthread_t sending_thread;
 
@@ -55,23 +55,27 @@ int run_threads( parsed_args_t reqs )
                         NULL, 
                         &sniff, 
                         &args_for_sniffer) != 0 ) {
-        ERROR_EXIT("Sniffing thread creation error!");
+        ERROR_RETURN("Sniffing thread creation error!");
     }
     if ( pthread_create(&sending_thread, 
                         NULL, 
                         &send_data_to_representer, 
                         &args_for_sender) != 0) {
-        ERROR_EXIT("Representer thread creation error!");
+        ERROR_RETURN("Representer thread creation error!");
     }
 
-    if ( pthread_join( sniffing_thread, NULL ) != 0 ) {
-        ERROR_EXIT("Thread join error");
+    if ( pthread_join( sniffing_thread, (void**)&sniff_status ) != 0 ) {
+        ERROR_RETURN("Thread join error");
     }
-    if ( pthread_join( sending_thread, NULL ) != 0 ) {
-        ERROR_EXIT("Thread join error");    
+    if ( pthread_join( sending_thread, (void**)&send_status ) != 0 ) {
+        ERROR_RETURN("Thread join error");    
     }
 
-    return 0;
+    if ( sniff_status < 0 || send_status < 0 ) {
+        return 0;
+    }
+
+    return 1;
 }
 
 
@@ -79,15 +83,14 @@ int main( int argc, char *argv[] )
 {
     parsed_args_t args = { NULL };
     
-    if ( argc == 1 ) {
-        printf("Sniffing every incoming packet!\n");
-    }
-    else if ( !parse_args( argc, argv, &args ) ) {
+    if ( !parse_args( argc, argv, &args ) ) {
         ERROR_EXIT("Error while parsing options");
     }
 
     printf("Sniffing started!\n");
-    run_threads( args );
+    if ( !run_threads( args ) ) {
+        exit(EXIT_FAILURE);
+    }
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }

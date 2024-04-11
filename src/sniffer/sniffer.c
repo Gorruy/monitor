@@ -126,12 +126,12 @@ void* sniff( void* args_struct_ptr )
 
     uint8_t* buffer = (uint8_t*)malloc(USHRT_MAX); // 65535 for max size of udp packet
     if (!buffer) {
-      ERROR_RETURN("Malloc error!\n");
+      THREAD_ERROR_RETURN("Malloc error!\n");
     }
 
     SOCKET raw_socket = socket( AF_PACKET, SOCK_RAW, htons(ETH_P_ALL) );
     if ( NOTVALIDSOCKET(raw_socket) ) {
-      ERROR_RETURN("Error in socket creation\n");
+      THREAD_ERROR_RETURN("Error in socket creation\n");
     }
 
     strcpy(rq.ifr_name, args->interface);
@@ -140,7 +140,7 @@ void* sniff( void* args_struct_ptr )
                     SO_BINDTODEVICE, 
                     (void *)&rq, 
                     sizeof(rq)) < 0) {
-        ERROR_RETURN("Can't bind to interface!\n");
+        THREAD_ERROR_RETURN("Can't bind to interface!\n");
     }
 
     mreq.mr_ifindex = if_nametoindex(args->interface);
@@ -152,10 +152,10 @@ void* sniff( void* args_struct_ptr )
                     PACKET_MR_PROMISC,
                     (void*)&mreq, 
                     (socklen_t)sizeof(struct packet_mreq)) < 0 ) {
-        ERROR_RETURN("Can't turn socket to promiscouous mode!\n");
+        THREAD_ERROR_RETURN("Can't turn socket to promiscouous mode!\n");
     }
 
-    while (1) {
+    while (!break_signal) {
         memset(buffer, 0, MAX_HEADERS_SIZE);
   
         int pkt_len = recvfrom(raw_socket, 
@@ -167,7 +167,7 @@ void* sniff( void* args_struct_ptr )
         if ( pkt_len == -1 )
         {
             if ( errno != EAGAIN ) {
-                ERROR_RETURN("Error in recvfrom!\n");
+                THREAD_ERROR_RETURN("Error in recvfrom!\n");
             }
             else {
                 continue;
@@ -188,4 +188,6 @@ void* sniff( void* args_struct_ptr )
     // todo: fix unreachable
     free(buffer);
     CLOSESOCKET(raw_socket);
+
+    return (void *) 1;
 }

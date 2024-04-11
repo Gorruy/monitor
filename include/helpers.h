@@ -11,6 +11,11 @@
     return 0; \
 } while(0)
 
+#define THREAD_ERROR_RETURN(message) do { \
+    perror(message); \
+    return (void*) 0; \
+} while(0)
+
 #define WRONG_OPT_RETURN(message) do { \
     printf(message); \
     return 0; \

@@ -19,6 +19,9 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <errno.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "sender.h"
 #include "helpers.h"
@@ -26,6 +29,15 @@
 #define SEND_Q_NAME "/DataQueue"
 #define RECV_Q_NAME "/NoteQueue"
 
+
+// Global var that signals to whole app that representer send message
+int break_signal;
+
+static void signal_handler(int sig) {
+    if ( sig == SIGUSR1 ) {
+        break_signal = 1;
+    }
+}
 
 void* send_data_to_representer(void* args_struct_ptr)
 {
@@ -50,17 +62,17 @@ void* send_data_to_representer(void* args_struct_ptr)
 
     mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT, 0666, &notif_attr);
     if ( notif_q == (mqd_t) -1 ) {
-        ERROR_EXIT("Error in queue creation!");
+        THREAD_ERROR_RETURN("Error in queue creation!");
     }
 
     mqd_t data_q = mq_open(SEND_Q_NAME, O_WRONLY | O_CREAT, 0666, &data_attr);
     if ( data_q == (mqd_t) -1 ) {
-        ERROR_EXIT("Error in queue creation!");
+        THREAD_ERROR_RETURN("Error in queue creation!");
     }
     size_t note[2];
 
     if ( mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL) == -1 ) {
-        ERROR_EXIT("Error when receiving message from queue");
+        THREAD_ERROR_RETURN("Error when receiving message from queue");
     }
 
     all_pkt_num = *(args->pkt_num_ptr);
@@ -71,10 +83,14 @@ void* send_data_to_representer(void* args_struct_ptr)
     int send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
 
     if ( send_status == -1 ){
-        ERROR_EXIT("Error when sending message to queue");
+        THREAD_ERROR_RETURN("Error when sending message to queue");
     }
 
     mq_unlink(RECV_Q_NAME);
     mq_unlink(SEND_Q_NAME);
-    exit(EXIT_SUCCESS);
+
+    signal( SIGUSR1, signal_handler ); 
+    kill( getpid(), SIGUSR1 ); 
+
+    return (void*) 1;
 }
