@@ -28,7 +28,7 @@
 
 // This struct will be used to pass requriments from programm arguments and values to increment
 typedef struct sniff_args {
-    char *interface;
+    size_t interface;
     char *req_ip_dest;
     char *req_ip_source;
     size_t req_port_dest;

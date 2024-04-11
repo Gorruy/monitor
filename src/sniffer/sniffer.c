@@ -42,12 +42,7 @@
 #define MAX_IP_LEN 40
 #define MAX_HEADERS_SIZE 66
 
-#ifdef DEBUG
-#define STATIC static
-#else
-#define STATIC
-#endif
-
+// array full of zeros for comparing
 static char zeros[100];
 
 STATIC int packet_meets_reqs(char* req_ip_source,
@@ -127,13 +122,15 @@ void* sniff( void* args_struct_ptr )
     struct sockaddr_ll addr_info;
     struct ifreq rq;
     struct packet_mreq mreq;
+    struct sockaddr_ll int_to_bind;
 
     sniff_args_t* args = (sniff_args_t*)args_struct_ptr;
     socklen_t info_len = sizeof(struct sockaddr_ll);
 
     memset( &addr_info, 0, sizeof(struct sockaddr_ll) );
     memset( &rq, 0, sizeof(struct ifreq) );
-    memset( &mreq,0, sizeof(struct packet_mreq) );
+    memset( &mreq, 0, sizeof(struct packet_mreq) );
+    memset( &int_to_bind, 0, sizeof(struct sockaddr_ll) );
 
     uint8_t* buffer = (uint8_t*)malloc(USHRT_MAX); // 65535 for max size of udp packet
     if (!buffer) {
@@ -145,16 +142,16 @@ void* sniff( void* args_struct_ptr )
       THREAD_ERROR_RETURN("Error in socket creation\n");
     }
 
-    strcpy(rq.ifr_name, args->interface);
-    if ( setsockopt(raw_socket, 
-                    SOL_SOCKET, 
-                    SO_BINDTODEVICE, 
-                    (void *)&rq, 
-                    sizeof(rq)) < 0) {
+    int_to_bind.sll_ifindex = args->interface;
+    int_to_bind.sll_family = AF_PACKET;
+    int_to_bind.sll_protocol = htons(ETH_P_IP);
+    if ( bind(raw_socket, 
+              (struct sockaddr*)&int_to_bind, 
+              sizeof(struct sockaddr_ll)) < 0 ) {
         THREAD_ERROR_RETURN("Can't bind to interface!\n");
     }
 
-    mreq.mr_ifindex = if_nametoindex(args->interface);
+    mreq.mr_ifindex = args->interface;
     mreq.mr_type = PACKET_MR_PROMISC;
     mreq.mr_alen = 6;
 
@@ -163,7 +160,7 @@ void* sniff( void* args_struct_ptr )
                     PACKET_MR_PROMISC,
                     (void*)&mreq, 
                     (socklen_t)sizeof(struct packet_mreq)) < 0 ) {
-        THREAD_ERROR_RETURN("Can't turn socket to promiscouous mode!\n");
+        THREAD_ERROR_RETURN("Can't turn socket to promiscouous mode!");
     }
 
     while (!break_signal) {

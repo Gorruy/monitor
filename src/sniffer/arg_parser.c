@@ -31,7 +31,7 @@
 #include "helpers.h"
 
 
-static int is_valid_ip( char* ip , char* res )
+STATIC int is_valid_ip( char* ip , char* res )
 {
     struct in6_addr addr6;
     struct in_addr addr4;
@@ -49,7 +49,7 @@ static int is_valid_ip( char* ip , char* res )
     }
 }
 
-static int is_valid_port( char* port )
+STATIC int is_valid_port( char* port )
 {
     for ( size_t i = 0; i < strlen(port); i++ )
     {
@@ -61,29 +61,14 @@ static int is_valid_port( char* port )
     return 1;
 }
 
-static int int_exist( char* interface )
+STATIC int int_exist( char* interface )
 {
-    struct ifreq rq;
-    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (NOTVALIDSOCKET(sock)) {
-        CLOSESOCKET(sock);
-        perror("Can't create socket!");
+    int idx;
+    if ( !(idx = if_nametoindex(interface)) ) {
         return 0;
-    }
-
-    memset(&rq, 0, sizeof(struct ifreq));
-    strcpy(rq.ifr_name, interface);
-    if ( ioctl(sock, SIOCGIFFLAGS, &rq ) < 0) {
-        CLOSESOCKET(sock);
-        return 0;
-    }
-
-    if ( rq.ifr_flags && IFF_UP ) {
-        return 1;
     }
     else {
-        return 0;
+        return idx;
     }
 }
 
@@ -117,10 +102,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
     while ((opt = getopt_long(argc, argv, "1:2:3:4:", options, NULL)) != -1 ) {
         switch (opt) {
           case 'i':
-              if ( int_exist(optarg) ) {
-                  strcpy(args->interface, optarg);
-              }
-              else {
+              if ( !(args->interface = int_exist(optarg)) ) {
                   WRONG_OPT_RETURN("Interface does not exist!\n");
               }
               break;
