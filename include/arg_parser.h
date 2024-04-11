@@ -24,7 +24,7 @@
 #include "helpers.h"
 
 typedef struct parsed_args {
-    char interface[IFNAMSIZ];
+    size_t interface;
     char ip_dest[MAX_ADDR_SZ];
     char ip_source[MAX_ADDR_SZ];
     size_t port_dest;
