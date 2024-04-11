@@ -41,4 +41,6 @@ typedef struct sniff_args {
 
 void* sniff(void*);
 
+extern int break_signal;
+
 #endif 
