@@ -24,11 +24,9 @@
 #include <netinet/udp.h>
 #include <linux/ipv6.h>
 #include <linux/if_ether.h>
-#include <linux/if_packet.h>
-#include <ctype.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <ctype.h>
 
 #include <fcntl.h>
 #include <mqueue.h>
@@ -50,10 +48,10 @@ STATIC int packet_meets_reqs(char* req_ip_source,
                              size_t req_port_source,
                              size_t req_port_dest, 
                              uint8_t* packet, 
-                             struct sockaddr_ll addr_info)
+                             struct sockaddr_ll *addr_info)
 {
     // Drop all tx packets
-    if ( addr_info.sll_pkttype == PACKET_OUTGOING ) {
+    if ( addr_info->sll_pkttype == PACKET_OUTGOING ) {
         return 0;
     }
 
@@ -160,7 +158,7 @@ void* sniff( void* args_struct_ptr )
                     PACKET_MR_PROMISC,
                     (void*)&mreq, 
                     (socklen_t)sizeof(struct packet_mreq)) < 0 ) {
-        THREAD_ERROR_RETURN("Can't turn socket to promiscouous mode!");
+        THREAD_ERROR_RETURN("Can't turn socket to promiscuous mode!");
     }
 
     while (!break_signal) {
@@ -187,7 +185,7 @@ void* sniff( void* args_struct_ptr )
                                args->req_port_source, 
                                args->req_port_dest,  
                                buffer, 
-                               addr_info)) {
+                               &addr_info)) {
             *(args->pkt_len_ptr) += pkt_len;
             *(args->pkt_num_ptr) += 1;
         }
