@@ -24,6 +24,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <stdint.h>
+#include <sys/socket.h>
+#include <linux/if_packet.h>
+#include <net/ethernet.h>
 
 
 // This struct will be used to pass requriments from programm arguments and values to increment
@@ -42,5 +46,9 @@ typedef struct sniff_args {
 void* sniff(void*);
 
 extern int break_signal;
+
+#ifdef DEBUG
+int packet_meets_reqs(char*, char*, size_t, size_t,  uint8_t*,  struct sockaddr_ll*);
+#endif
 
 #endif 

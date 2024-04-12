@@ -42,8 +42,9 @@ int main(int argc, char* argv[] )
     }
 
     memset(&addr, 0, sizeof(addr));
+
     addr.sin_family = AF_INET;
-    addr.sin_port = args.port_dest;
+    addr.sin_port = htons(args.port_dest);
     addr.sin_addr.s_addr = *(uint32_t*)args.ip_dest;
 
     for ( int i = 0; i < NUMBER_OF_TEST_RUNS; i++ ) {

@@ -31,7 +31,7 @@
 #include "helpers.h"
 
 
-STATIC int is_valid_ip( char* ip , char* res )
+STATIC int valid_ip( char* ip , char* res )
 {
     struct in6_addr addr6;
     struct in_addr addr4;
@@ -49,7 +49,7 @@ STATIC int is_valid_ip( char* ip , char* res )
     }
 }
 
-STATIC int is_valid_port( char* port )
+STATIC int valid_port( char* port )
 {
     for ( size_t i = 0; i < strlen(port); i++ )
     {
@@ -61,7 +61,7 @@ STATIC int is_valid_port( char* port )
     return 1;
 }
 
-STATIC int int_exist( char* interface )
+STATIC int valid_int( char* interface )
 {
     int idx;
     if ( !(idx = if_nametoindex(interface)) ) {
@@ -102,22 +102,22 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
     while ((opt = getopt_long(argc, argv, "1:2:3:4:", options, NULL)) != -1 ) {
         switch (opt) {
           case 'i':
-              if ( !(args->interface = int_exist(optarg)) ) {
+              if ( !(args->interface = valid_int(optarg)) ) {
                   WRONG_OPT_RETURN("Interface does not exist!\n");
               }
               break;
           case IPSRC:
-              if ( !is_valid_ip(optarg, args->ip_source) ) {
+              if ( !valid_ip(optarg, args->ip_source) ) {
                   WRONG_OPT_RETURN("Wrong value of required ip source address!\n");
               }
               break;
           case IPDEST:
-              if ( !is_valid_ip(optarg, args->ip_dest) ) {
+              if ( !valid_ip(optarg, args->ip_dest) ) {
                   WRONG_OPT_RETURN("Wrong value of reqired ip dest address!\n");
               }
               break;
           case PORTSRC:
-              if ( is_valid_port(optarg) ) {
+              if ( valid_port(optarg) ) {
                   args->port_source = atol(optarg);
               }
               else {
@@ -125,7 +125,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               }
               break;
           case PORTDEST:
-              if ( is_valid_port(optarg) ) {
+              if ( valid_port(optarg) ) {
                   args->port_dest = atol(optarg);
               }
               else {
