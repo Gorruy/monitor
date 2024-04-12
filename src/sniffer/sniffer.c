@@ -161,7 +161,7 @@ void* sniff( void* args_struct_ptr )
         THREAD_ERROR_RETURN("Can't turn socket to promiscuous mode!");
     }
 
-    while (1) {
+    while (!break_signal) {
         memset(buffer, 0, MAX_HEADERS_SIZE);
   
         int pkt_len = recvfrom(raw_socket, 
@@ -173,7 +173,7 @@ void* sniff( void* args_struct_ptr )
         if ( pkt_len == -1 )
         {
             if ( errno != EAGAIN ) {
-                ERROR_RETURN("Error in recvfrom!\n");
+                THREAD_ERROR_RETURN("Error in recvfrom!\n");
             }
             else {
                 continue;
@@ -193,7 +193,8 @@ void* sniff( void* args_struct_ptr )
         }
     }
 
-    // todo: fix unreachable
     free(buffer);
     CLOSESOCKET(raw_socket);
+
+    return (void*) 1;
 }
