@@ -74,7 +74,6 @@ STATIC int valid_int( char* interface )
 
 int parse_args( int argc, char *argv[], parsed_args_t *args ) 
 {
-
     if ( argc > 10 ) {
         WRONG_OPT_RETURN("Too many options!! Try --help to get info on usage\n");
     }
