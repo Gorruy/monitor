@@ -12,7 +12,7 @@
 #define RECV_Q_NAME "/NoteQueue"
 
 // Global var that signals to whole app that representer send message
-int break_signal;
+volatile int break_signal;
 
 static void signal_handler(int sig) {
     if ( sig == SIGUSR1 ) {
