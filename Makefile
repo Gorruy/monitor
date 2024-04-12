@@ -53,7 +53,12 @@ install: build
 
 tests: CFLAGS += -DDEBUG -g
 tests: build $(TESTOBJS)
-	$(CC) -I./$(INCLDIR) $(TESTOBJS) $(SRCDIR)/sniffer/arg_parser.c $(SNFRLDFLAGS) -o $(BINDIR)$@
+	$(CC) -I./$(INCLDIR) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.c \
+	$(SRCDIR)sniffer/sniffer.c $(SRCDIR)sniffer/sender.c $(SNFRLDFLAGS) -o $(BINDIR)$@;
+	./tests/run_tests.sh;
+
+load: CFLAGS += -DLOAD
+load: tests
 
 clean:
 	rm -rf ${BUILDDIR}
