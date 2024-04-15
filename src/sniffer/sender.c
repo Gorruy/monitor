@@ -12,14 +12,7 @@
 #define RECV_Q_NAME "/NoteQueue"
 
 // Global var that signals to whole app that representer send message
-volatile int break_signal;
-
-static void signal_handler(int sig) {
-    if ( sig == SIGUSR1 ) {
-        break_signal = 1;
-    }
-}
-
+int break_signal;
 
 void* send_data_to_representer(void* args_struct_ptr)
 {
@@ -83,8 +76,7 @@ void* send_data_to_representer(void* args_struct_ptr)
     mq_unlink(RECV_Q_NAME);
     mq_unlink(SEND_Q_NAME);
 
-    signal( SIGUSR1, signal_handler ); 
-    kill( getpid(), SIGUSR1 ); 
+    break_signal = 1; 
 
     return (void*) 1;
 }
