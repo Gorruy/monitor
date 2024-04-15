@@ -88,7 +88,7 @@ int run_threads( parsed_args_t *reqs )
     pthread_mutex_destroy(&pkt_mtx);
     pthread_cond_destroy(&pkt_sig);
 
-    return 0;
+    return 1;
 }
 
 
