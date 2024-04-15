@@ -33,6 +33,6 @@ typedef struct sender_args {
 
 void* send_data_to_representer(void*);
 
-extern volatile int break_signal;
+extern int break_signal;
 
 #endif
