@@ -34,37 +34,36 @@ struct stats {
     size_t packets_len;
 };
 
-static struct stats run_queues(void)
+static int run_queues(struct stats *result)
 {
-    struct stats result;
-
     mqd_t note_q = mq_open( SEND_Q_NAME, O_WRONLY );
     if ( note_q == (mqd_t) -1 ) {
-        ERROR_EXIT("Failed to create queue!");
+        ERROR_RETURN("Failed to create queue!\n");
     }
     mqd_t data_q = mq_open( RECV_Q_NAME, O_RDONLY );
 
     if ( data_q == (mqd_t) -1 ) {
-        ERROR_EXIT("Failed to create queue!");
+        ERROR_RETURN("Failed to create queue!\n");
     }
 
     if ( mq_send( note_q, (char*)&result, sizeof(char), 0 ) == -1 ) { // Message of zero size to notify sniffer
-        ERROR_EXIT("Error in sendind");
+        ERROR_RETURN("Error in sendind\n");
     }
     
     if ( mq_receive(data_q, (char*)&result, sizeof(size_t)*2, 0) == -1 ) {
-        ERROR_EXIT("Error in recieveing");
+        ERROR_RETURN("Error in recieveing\n");
     }
 
     mq_unlink(RECV_Q_NAME);
     mq_unlink(SEND_Q_NAME);
 
-    return result;
+    return 1;
 }
 
 int main(void)
 {
-    struct stats stats_to_print = run_queues();
+    struct stats stats_to_print;
+    run_queues(&stats_to_print);
 
     printf("Number of packets:%ld, size of all packets in bytes:%ld\n",
            stats_to_print.packet_num, 

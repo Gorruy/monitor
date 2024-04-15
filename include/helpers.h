@@ -2,7 +2,7 @@
 #define HLPR
 
 #define ERROR_EXIT(message) do { \
-    perror(message); \
+    printf(message); \
     exit(EXIT_FAILURE); \
 } while(0)
 
