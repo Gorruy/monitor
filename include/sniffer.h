@@ -43,7 +43,7 @@ typedef struct sniff_args {
 
 void* sniff(void*);
 
-extern volatile int break_signal;
+extern int break_signal;
 
 #ifdef DEBUG
 int packet_meets_reqs(char*, char*, size_t, size_t,  uint8_t*,  struct sockaddr_ll*);
