@@ -14,6 +14,16 @@
 // Global var that signals to whole app that representer send message
 int break_signal;
 
+static void sigint_handler(int sig)
+{
+    if ( sig == SIGINT ) {
+        signal( SIGINT, SIG_DFL );
+        mq_unlink(RECV_Q_NAME);
+        mq_unlink(SEND_Q_NAME);
+        kill( getpid(), SIGINT );
+    }
+}
+
 void* send_data_to_representer(void* args_struct_ptr)
 {
     /* Creates a posix message queue and starts listening for
@@ -21,6 +31,8 @@ void* send_data_to_representer(void* args_struct_ptr)
        collected statistics to representer  */
 
     sender_args_t* args = (sender_args_t*)args_struct_ptr;
+
+    signal(SIGINT, sigint_handler);
 
     size_t all_pkt_num = 0;
     size_t all_pkt_len = 0;
