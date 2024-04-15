@@ -51,7 +51,7 @@ install: build
 	install -D $(BINDIR)representer \
 		$(DESTDIR)$(prefix)/bin/representer
 
-tests: CFLAGS += -DDEBUG -g
+tests: CFLAGS += -DDEBUG -ggdb3 -fno-omit-frame-pointer
 tests: build $(TESTOBJS)
 	$(CC) -I./$(INCLDIR) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.c \
 	$(SRCDIR)sniffer/sniffer.c $(SRCDIR)sniffer/sender.c $(SNFRLDFLAGS) -o $(BINDIR)$@;
