@@ -85,6 +85,8 @@ void* send_data_to_representer(void* args_struct_ptr)
 
     size_t stats_to_send[] = { all_pkt_num, all_pkt_len };
 
+    fflush(stdout);
+
     int send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
 
     if ( send_status == -1 ){
