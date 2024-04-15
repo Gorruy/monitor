@@ -113,13 +113,13 @@ int loadtest(int argc, char* argv[] )
 int main(int argc, char* argv[] )
 {
     if ( !check_arg_parse() ) {
-        return 0;
+        ERROR_EXIT("Error in arg_parse function!");
     }
     if ( !check_valid_ip() ) {
-        return 0;
+        ERROR_EXIT("Error in valid_ip function!");
     }
     if ( !check_valid_port() ) {
-        return 0;
+        ERROR_EXIT("Error in valid_port function!");
     }
 
 #ifdef LOAD
