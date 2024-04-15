@@ -97,12 +97,12 @@ int main( int argc, char *argv[] )
     parsed_args_t args;
     
     if ( !parse_args( argc, argv, &args ) ) {
-        ERROR_EXIT("Error while parsing options");
+        ERROR_EXIT("Error while parsing options\n");
     }
 
     printf("Sniffing started!\n");
     if ( !run_threads( &args ) ) {
-        exit(EXIT_FAILURE);
+        ERROR_EXIT("Error while running threads\n");
     }
 
     exit(EXIT_SUCCESS);
