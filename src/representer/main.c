@@ -46,24 +46,28 @@ static int run_queues(struct stats *result)
         ERROR_RETURN("Failed to create queue!\n");
     }
 
-    if ( mq_send( note_q, (char*)&result, sizeof(char), 0 ) == -1 ) { // Message of zero size to notify sniffer
+    if ( mq_send( note_q, (char*)result, sizeof(char), 0 ) == -1 ) { // Message of zero size to notify sniffer
         ERROR_RETURN("Error in sendind\n");
     }
     
-    if ( mq_receive(data_q, (char*)&result, sizeof(size_t)*2, 0) == -1 ) {
+    if ( mq_receive(data_q, (char*)result, sizeof(size_t)*2, 0) == -1 ) {
         ERROR_RETURN("Error in recieveing\n");
     }
 
     mq_unlink(RECV_Q_NAME);
     mq_unlink(SEND_Q_NAME);
 
+    fflush(stdout);
+
     return 1;
 }
 
 int main(void)
 {
-    struct stats stats_to_print;
-    run_queues(&stats_to_print);
+    struct stats stats_to_print = {0};
+    if ( !run_queues(&stats_to_print) ) {
+        ERROR_EXIT("Error while recieving data!\n");
+    }
 
     printf("Number of packets:%ld, size of all packets in bytes:%ld\n",
            stats_to_print.packet_num, 
