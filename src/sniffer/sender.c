@@ -74,12 +74,12 @@ void* send_data_to_representer(void* args_struct_ptr)
         }        
 
         pthread_mutex_lock(args->pkt_mtx);
-        if ( pthread_cond_timedwait(args->data_ready_sig, args->pkt_mtx, &timeout) == ETIMEDOUT ) {
-            pthread_mutex_unlock(args->pkt_mtx);
-            continue;
+        if ( pthread_cond_timedwait(args->data_ready_sig, 
+                                    args->pkt_mtx, 
+                                    &timeout) != ETIMEDOUT ) {
+            all_pkt_num += 1;
+            all_pkt_len += *(args->pkt_len_ptr);
         }
-        all_pkt_num += 1;
-        all_pkt_len += *(args->pkt_len_ptr);
         pthread_mutex_unlock(args->pkt_mtx);
     }
 
