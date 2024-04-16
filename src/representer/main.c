@@ -57,8 +57,6 @@ static int run_queues(struct stats *result)
     mq_unlink(RECV_Q_NAME);
     mq_unlink(SEND_Q_NAME);
 
-    fflush(stdout);
-
     return 1;
 }
 
