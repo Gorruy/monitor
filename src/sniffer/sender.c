@@ -29,7 +29,11 @@ void* send_data_to_representer(void* args_struct_ptr)
     /* Creates a posix message queue and starts listening for
        signal from representer proccess, after which it sends 
        collected statistics to representer  */
-
+    
+    struct timespec timeout = {
+        .tv_sec = 0,
+        .tv_nsec = 1000000
+    };
     sender_args_t* args = (sender_args_t*)args_struct_ptr;
 
     signal(SIGINT, sigint_handler);
@@ -59,7 +63,6 @@ void* send_data_to_representer(void* args_struct_ptr)
     size_t note[2];
 
     ssize_t rcv_status;
-
     while (1) {
         rcv_status = mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL);
 
@@ -71,15 +74,16 @@ void* send_data_to_representer(void* args_struct_ptr)
         }        
 
         pthread_mutex_lock(args->pkt_mtx);
-        pthread_cond_wait(args->data_ready_sig, args->pkt_mtx);
+        if ( pthread_cond_timedwait(args->data_ready_sig, args->pkt_mtx, &timeout) == ETIMEDOUT ) {
+            pthread_mutex_unlock(args->pkt_mtx);
+            continue;
+        }
         all_pkt_num += 1;
         all_pkt_len += *(args->pkt_len_ptr);
         pthread_mutex_unlock(args->pkt_mtx);
     }
 
     size_t stats_to_send[] = { all_pkt_num, all_pkt_len };
-
-    fflush(stdout);
 
     int send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
 
