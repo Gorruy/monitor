@@ -34,7 +34,7 @@ echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} 1005;
 res="$(sudo ./bin/representer)" 
 
 if [[ $res != "Number of packets:1, size of all packets in bytes:56" ]]; then
-    echo "Error while checking portdest!"
+    echo "Error while checking portdest!";
 fi
 
 sudo ./bin/sniffer --interface lo --portdest 123 > /dev/null & sleep 1;
@@ -45,4 +45,6 @@ if [[ $res != "Number of packets:0, size of all packets in bytes:0" ]]; then
     echo "Error while checking portdest!"
 fi
 
-sudo ./bin/tests
+sudo ./bin/tests --interface lo --ipdest ${MY_IP} --portdest 1005;
+
+echo "Tests is over!"

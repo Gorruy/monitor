@@ -88,9 +88,13 @@ int main( int argc, char *argv[] )
     }
 
     printf("Sniffing started!\n");
+    if ( argc == 3 ) {
+        printf("Module will sniff all packets at given interface\n");
+    }
     if ( !run_threads( &args ) ) {
         ERROR_EXIT("Error while running threads\n");
     }
 
+    printf("Sniffing is over!\n");
     exit(EXIT_SUCCESS);
 }
