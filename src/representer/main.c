@@ -64,7 +64,7 @@ int main(void)
 {
     struct stats stats_to_print = {0};
     if ( !run_queues(&stats_to_print) ) {
-        ERROR_EXIT("Error while recieving data!\n");
+        ERROR_EXIT("Error while running queues!\n");
     }
 
     printf("Number of packets:%ld, size of all packets in bytes:%ld\n",

@@ -14,7 +14,7 @@
 #include "sniffer.h"
 #include "helpers.h"
 
-#define NUMBER_OF_TEST_RUNS 100000
+#define NUMBER_OF_TEST_RUNS 1000000
 
 int check_arg_parse(void)
 {
