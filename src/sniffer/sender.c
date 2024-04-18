@@ -74,6 +74,7 @@ void* send_data_to_representer(void* args_struct_ptr)
     if ( data_q == (mqd_t) -1 ) {
         THREAD_ERROR_RETURN("Error in queue creation!");
     }
+
     size_t note[2];
 
     if ( mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL) == -1 ) {

@@ -43,7 +43,7 @@
 // array full of zeros for comparing
 static char zeros[100];
 
-STATIC int packet_meets_reqs(char* req_ip_source,
+static int packet_meets_reqs(char* req_ip_source,
                              char* req_ip_dest,
                              size_t req_port_source,
                              size_t req_port_dest, 
@@ -143,6 +143,7 @@ void* sniff( void* args_struct_ptr )
     int_to_bind.sll_ifindex = args->interface;
     int_to_bind.sll_family = AF_PACKET;
     int_to_bind.sll_protocol = htons(ETH_P_IP);
+
     if ( bind(raw_socket, 
               (struct sockaddr*)&int_to_bind, 
               sizeof(struct sockaddr_ll)) < 0 ) {

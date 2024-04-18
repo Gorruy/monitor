@@ -8,7 +8,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ifaddrs.h>
 
 #include "arg_parser.h"
 #include "sniffer.h"
@@ -16,53 +15,6 @@
 
 #define NUMBER_OF_TEST_RUNS 1000000
 
-int check_arg_parse(void)
-{
-    parsed_args_t args;
-    struct ifaddrs *addrs,*tmp;
-
-    int argc = 5;
-
-    getifaddrs(&addrs);
-    tmp = addrs;
-    
-    while (tmp) {
-        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
-            break;
-        }
-        tmp = tmp->ifa_next;
-    }
-
-    char *argv[5] = { "prname", "--interface", tmp->ifa_name, "--ipdest", "1.1.1.1" };
-    
-    freeifaddrs(addrs);
-
-    int res = parse_args( argc, argv, &args );
-    if ( res < 0 ) {
-        return 0;
-    }
-
-    return 1;
-}
-
-int check_valid_ip(void)
-{
-    char* ip = "1.1.1.1";
-    char buf[100];
-    if ( valid_ip(ip, buf) < 0 ) {
-        return 0;
-    }
-    return 1;
-}
-
-int check_valid_port(void)
-{
-    char* port = "1000";
-    if ( valid_port(port) < 0 ) {
-        return 0;
-    }
-    return 1;
-}
 
 int loadtest(int argc, char* argv[] )
 {
