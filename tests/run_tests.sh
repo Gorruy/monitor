@@ -15,6 +15,8 @@ MY_IP=$(hostname -I | awk '{print $1}');
 # flamegraph.pl --title="CPU Time Flame Graph" out.perf-folded > perf.svg
 # flamegraph.pl --color=io --title="Off-CPU Time Flame Graph" --countname=us < out.stacks > out.svg
 
+
+# TODO: fix error while tests interrupted by third party packages!
 # Tests to check ipdest:
 sudo ./bin/sniffer --interface lo --ipdest ${MY_IP} > /dev/null & sleep 1;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} 1005;

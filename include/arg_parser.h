@@ -34,9 +34,9 @@ typedef struct parsed_args {
 int parse_args( int, char**, parsed_args_t* );
 
 #ifdef DEBUG
-int valid_ip( char*, char* );
-int valid_port( char* ) ;
-int valid_int( char* );
+int check_valid_ip(void);
+int check_valid_port(void);
+int check_arg_parse(void);
 #endif
 
 #endif

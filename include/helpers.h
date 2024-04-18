@@ -26,10 +26,4 @@
 #define SOCKET int 
 #define MAX_ADDR_SZ 16
 
-#ifdef DEBUG
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 #endif

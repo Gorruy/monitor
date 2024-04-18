@@ -26,12 +26,17 @@
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <limits.h>
+
+#ifdef DEBUG
+#include <ifaddrs.h>
+#endif
 
 #include "arg_parser.h"
 #include "helpers.h"
 
 
-STATIC int valid_ip( char* ip , char* res )
+static int valid_ip( char* ip , char* res )
 {
     struct in6_addr addr6;
     struct in_addr addr4;
@@ -49,7 +54,7 @@ STATIC int valid_ip( char* ip , char* res )
     }
 }
 
-STATIC int valid_port( char* port )
+static int valid_port( char* port )
 {
     for ( size_t i = 0; i < strlen(port); i++ )
     {
@@ -57,11 +62,14 @@ STATIC int valid_port( char* port )
           return 0;
         }
     }
+    if ( strtol(port, NULL, 10) > USHRT_MAX ) {
+        return 0;
+    }
 
     return 1;
 }
 
-STATIC int valid_int( char* interface )
+static int valid_int( char* interface )
 {
     int idx;
     if ( !(idx = if_nametoindex(interface)) ) {
@@ -152,10 +160,71 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               WRONG_OPT_RETURN("Try --help\n");
         }
     }
-
+    
+    // todo:fix check_arg_parse 0 from if_nametoindex
     if ( !args->interface ) {
         WRONG_OPT_RETURN("You should specify interface!\n");
     }
 
     return 1;
 }
+
+
+#ifdef DEBUG
+int check_valid_ip(void)
+{
+    char* ip = "1.1.1.1";
+    char buf[100];
+    if ( valid_ip(ip, buf) < 0 ) {
+        return 0;
+    }
+    return 1;
+}
+
+int check_valid_port(void)
+{
+    char* port = "1000";
+    if ( !valid_port(port) ) {
+        return 0;
+    }
+    port = "abcd";
+    if ( valid_port(port) ) {
+        return 0;
+    }
+    port = "31231231231231232131232";
+    if ( valid_port(port) ) {
+        return 0;
+    }
+    return 1;
+}
+
+int check_arg_parse(void)
+{
+    parsed_args_t args;
+    struct ifaddrs *addrs,*tmp;
+
+    int argc = 5;
+
+    getifaddrs(&addrs);
+    tmp = addrs;
+    
+    while (tmp) {
+        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
+            break;
+        }
+        tmp = tmp->ifa_next;
+    }
+
+    char *argv[5] = { "prname", "--interface", tmp->ifa_name, "--ipdest", "1.1.1.1" };
+    
+    freeifaddrs(addrs);
+
+    int res = parse_args( argc, argv, &args );
+    if ( res < 0 ) {
+        return 0;
+    }
+
+    return 1;
+}
+
+#endif
