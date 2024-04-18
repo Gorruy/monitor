@@ -1,10 +1,9 @@
 Программа состоит из двух утилит: sniffer и representer, первая после запуска начинает собирать статистику по входящим udp пакетам на определенном интерфейсе, фильтруя их в зависимости от заданных опций (список опций можно получить с помощью флага -h), вторая же после запуска выводит на экран количество принятых первой пакетов и их общий размер, включая заголовки. Запуск второй утилиты завершает работку первой и ее нужно запускать повторно.
 
 Результат профилирования для программы с суммированием статистики в отдельном потоке:
-![perf](https://github.com/Gorruy/sniffer/assets/83616301/12ec791a-850c-4a95-a069-f364a2658276)
-![out](https://github.com/Gorruy/sniffer/assets/83616301/ae99bd21-fb2d-430d-9134-b956488ee850)
-
+![perf](https://github.com/Gorruy/sniffer/assets/83616301/3a702e3b-d82b-48a7-8be6-8f679526ae7c)
+![out](https://github.com/Gorruy/sniffer/assets/83616301/3d38c424-e52a-4531-aff7-2425b86a08c7)
 
 Результат для программы с суммированием в том же самом потоке:
-![perf](https://github.com/Gorruy/sniffer/assets/83616301/f2087cfb-88ca-4189-92d3-5d82eff834e9)
-![out](https://github.com/Gorruy/sniffer/assets/83616301/feba9930-41eb-46ff-9752-68c40e84d848)
+![perf](https://github.com/Gorruy/sniffer/assets/83616301/095be52a-7af5-402e-b7ea-e2d8cf5e9f08)
+![out](https://github.com/Gorruy/sniffer/assets/83616301/97b8dec3-4f57-446c-ab75-799f82ce1e7e)
