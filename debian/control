@@ -1,13 +1,16 @@
 Source: sniffer
-Section: unknown
+Section: utils
 Priority: optional
 Maintainer: Vladimir Mimikin <>
 Build-Depends: debhelper (>=11~)
+            make,
+            gcc,
+            debuild
+
 Standards-Version: 4.1.4
-Homepage:
 
 Package: sniffer
-Architecture: any
+Architecture: amd64
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: cli app for packet sniffing
+Description: cli app for udp packet sniffing

@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 MY_IP=$(hostname -I | awk '{print $1}');
 
 ../bin/sniffer --interface lo & \

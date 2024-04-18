@@ -147,12 +147,11 @@ void* sniff( void* args_struct_ptr )
     if ( bind(raw_socket, 
               (struct sockaddr*)&int_to_bind, 
               sizeof(struct sockaddr_ll)) < 0 ) {
-        THREAD_ERROR_RETURN("Can't bind to interface!\n");
+        THREAD_ERROR_RETURN("Can't bind to interface!");
     }
 
     mreq.mr_ifindex = args->interface;
     mreq.mr_type = PACKET_MR_PROMISC;
-    mreq.mr_alen = 6;
 
     if ( setsockopt(raw_socket, 
                     SOL_PACKET, 
@@ -174,7 +173,7 @@ void* sniff( void* args_struct_ptr )
         if ( pkt_len == -1 )
         {
             if ( errno != EAGAIN ) {
-                THREAD_ERROR_RETURN("Error in recvfrom!\n");
+                THREAD_ERROR_RETURN("Error in recvfrom!");
             }
             else {
                 continue;
