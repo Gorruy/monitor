@@ -1,1 +1,9 @@
-# You must remove unused comment lines for the released package.
+debian/compat
+debian/install
+debian/links
+debian/watch
+debian/patches/series
+debian/postinst
+debian/preinst
+debian/postrm
+debian/prerm

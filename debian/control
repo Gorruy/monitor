@@ -2,7 +2,8 @@ Source: sniffer
 Section: utils
 Priority: optional
 Maintainer: Vladimir Mimikin <>
-Build-Depends: debhelper (>=11~)
+Build-Depends:  debhelper-compat (= 11),
+            debhelper (>=11~),
             make,
             gcc,
             debuild
