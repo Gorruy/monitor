@@ -1,6 +1,5 @@
-sniffer (0.1-1) UNRELEASED; urgency=low
+sniffer (0.1-1) unstable; urgency=low
 
-  * Initial release. Closes: #nnnn
-    <nnnn is the bug number of your ITP>
+  * Initial release. Programm sniffs udp packets at given interface.
 
- -- Vladimir Mimikin <>  Thu, 18 Apr 2024 17:25:22 +0300
+ -- Vladimir Mimikin <vladimirmimikin@gmail.com>  Thu, 18 Apr 2024 17:25:22 +0300
