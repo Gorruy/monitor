@@ -36,9 +36,7 @@ static void sigint_handler(int sig)
 {
     if ( sig == SIGINT ) {
         signal( SIGINT, SIG_DFL );
-        mq_unlink(RECV_Q_NAME);
-        mq_unlink(SEND_Q_NAME);
-        kill( getpid(), SIGINT );
+        break_signal = 1; 
     }
 }
 
@@ -52,9 +50,6 @@ void* send_data_to_representer(void* args_struct_ptr)
 
     signal(SIGINT, sigint_handler);
 
-    size_t all_pkt_num = 0;
-    size_t all_pkt_len = 0;
-
     struct mq_attr notif_attr = {
         .mq_maxmsg = 1,
         .mq_msgsize = sizeof(size_t)
@@ -65,7 +60,7 @@ void* send_data_to_representer(void* args_struct_ptr)
         .mq_msgsize = sizeof(size_t)*2
     };
 
-    mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT, 0666, &notif_attr);
+    mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT | O_NONBLOCK, 0666, &notif_attr);
     if ( notif_q == (mqd_t) -1 ) {
         THREAD_ERROR_RETURN("Error in queue creation!");
     }
@@ -76,28 +71,35 @@ void* send_data_to_representer(void* args_struct_ptr)
     }
 
     size_t note[2];
+    size_t stats_to_send[2] = {0};
+    int rcv_status;
+    int send_status;
 
-    if ( mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL) == -1 ) {
-        THREAD_ERROR_RETURN("Error when receiving message from queue");
-    }
+    while (!break_signal) {
+        rcv_status = mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL);
 
-    all_pkt_num = *(args->pkt_num_ptr);
-    all_pkt_len = *(args->pkt_len_ptr);
+        if ( rcv_status == -1 && errno != EAGAIN) {
+            THREAD_ERROR_RETURN("Error when receiving message from queue");
+        }
+        else if ( rcv_status == -1 ) {
+            continue;
+        }        
 
-    size_t stats_to_send[] = { all_pkt_num, all_pkt_len };
+        stats_to_send[0] = *(args->pkt_num_ptr);
+        stats_to_send[1] = *(args->pkt_len_ptr);
 
-    fflush(stdout);
+        send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
 
-    int send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
-
-    if ( send_status == -1 ){
-        THREAD_ERROR_RETURN("Error when sending message to queue");
+        *(args->pkt_num_ptr) = 0;
+        *(args->pkt_len_ptr) = 0;
+        
+        if ( send_status == -1 ){
+            THREAD_ERROR_RETURN("Error when sending message to queue");
+        }
     }
 
     mq_unlink(RECV_Q_NAME);
     mq_unlink(SEND_Q_NAME);
-
-    break_signal = 1; 
 
     return (void*) 1;
 }
