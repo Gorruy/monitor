@@ -128,12 +128,12 @@ void* sniff( void* args_struct_ptr )
 
     uint8_t* buffer = (uint8_t*)malloc(USHRT_MAX); // 65535 for max size of udp packet
     if (!buffer) {
-      ERROR_RETURN("Malloc error!\n");
+      THREAD_ERROR_RETURN("Malloc error!\n");
     }
 
     SOCKET raw_socket = socket( AF_PACKET, SOCK_RAW, htons(ETH_P_ALL) );
     if ( NOTVALIDSOCKET(raw_socket) ) {
-      ERROR_RETURN("Error in socket creation\n");
+      THREAD_ERROR_RETURN("Error in socket creation\n");
     }
 
     int_to_bind.sll_ifindex = args->interface;
