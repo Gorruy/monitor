@@ -14,7 +14,7 @@ PORT=1005
 
 
 # Tests to check ipdest:
-sudo ./bin/sniffer --interface lo --ipdest ${MY_IP} > /dev/null & sleep 0.1;
+sudo ./bin/sniffer --interface lo --ipdest ${MY_IP} > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
 res="$(sudo ./bin/representer)" 
 
@@ -23,7 +23,7 @@ if [[ $res != "Number of packets:1, size of all packets in bytes:56" ]]; then
     echo $res;
 fi
 
-sudo ./bin/sniffer --interface lo --ipdest 100.100.100.100 > /dev/null & sleep 0.1;
+sudo ./bin/sniffer --interface lo --ipdest 100.100.100.100 > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
 res="$(sudo ./bin/representer)" 
 
@@ -33,7 +33,8 @@ if [[ $res != "Number of packets:0, size of all packets in bytes:0" ]]; then
 fi
 
 # Tests to check portdest:
-sudo ./bin/sniffer --interface lo --portdest ${PORT} > /dev/null & sleep 0.1;
+sudo sleep 0.01;
+sudo ./bin/sniffer --interface lo --portdest ${PORT} > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
 res="$(sudo ./bin/representer)" 
 
@@ -42,7 +43,7 @@ if [[ $res != "Number of packets:1, size of all packets in bytes:56" ]]; then
     echo $res;
 fi
 
-sudo ./bin/sniffer --interface lo --portdest 123 > /dev/null & sleep 0.1;
+sudo ./bin/sniffer --interface lo --portdest 123 > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
 res="$(sudo ./bin/representer)" 
 
