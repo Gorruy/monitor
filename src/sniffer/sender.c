@@ -10,6 +10,7 @@
 
 #define SEND_Q_NAME "/DataQueue"
 #define RECV_Q_NAME "/NoteQueue"
+#define CWAIT_TIMEOUT_NSEC 1000000
 
 // Global var that signals to whole app that representer send message
 int break_signal;
@@ -29,7 +30,11 @@ void* send_data_to_representer(void* args_struct_ptr)
     /* Creates a posix message queue and starts listening for
        signal from representer proccess, after which it sends 
        collected statistics to representer  */
-    
+       
+    struct timespec timeout = {
+        .tv_sec = 0,
+        .tv_nsec = CWAIT_TIMEOUT_NSEC
+    };
     sender_args_t* args = (sender_args_t*)args_struct_ptr;
 
     signal(SIGINT, sigint_handler);
