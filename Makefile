@@ -22,7 +22,7 @@ SNFROBJS := $(SNFRSRCS:$(SRCDIR)sniffer/%.c=$(BUILDDIR)sniffer/%.o)
 RPSTOBJS := $(RPSTSRCS:$(SRCDIR)representer/%.c=$(BUILDDIR)representer/%.o)
 TESTOBJS := $(TESTSRCS:$(TESTDIR)%.c=$(BUILDDIR)tests/%.o)
 
-all: build tests
+all: build
 
 build: $(BUILDDIR) $(BINDIR) sniffer representer
 
@@ -51,14 +51,14 @@ install: build
 	install -D $(BINDIR)representer \
 		$(DESTDIR)$(prefix)/bin/representer
 
+load: CFLAGS += -DLOAD
+load: tests
+
 tests: CFLAGS += -DDEBUG -ggdb3 -fno-omit-frame-pointer
 tests: build $(TESTOBJS)
 	$(CC) -I./$(INCLDIR) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.c \
 	$(SRCDIR)sniffer/sniffer.c $(SRCDIR)sniffer/sender.c $(SNFRLDFLAGS) -o $(BINDIR)$@;
 	./tests/run_tests.sh;
-
-load: CFLAGS += -DLOAD
-load: tests
 
 clean:
 	rm -rf ${BUILDDIR}
