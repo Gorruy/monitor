@@ -179,7 +179,7 @@ void* sniff( void* args_struct_ptr )
                 continue;
             }
         }
-  
+
         if ( packet_meets_reqs(args->req_ip_source,
                                args->req_ip_dest, 
                                args->req_port_source, 
@@ -191,7 +191,6 @@ void* sniff( void* args_struct_ptr )
         }
     }
 
-    // todo: fix unreachable
     free(buffer);
     CLOSESOCKET(raw_socket);
 

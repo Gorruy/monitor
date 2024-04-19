@@ -82,7 +82,7 @@ static int valid_int( char* interface )
 
 int parse_args( int argc, char *argv[], parsed_args_t *args ) 
 {
-    if ( argc > 10 ) {
+    if ( argc > 11 ) {
         WRONG_OPT_RETURN("Too many options!! Try --help to get info on usage\n");
     }
 
@@ -149,9 +149,9 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
                      "                    ADDRESS can be ipv4 or ipv6 address in standard format\n"
                      "--ipdest [ADDRESS]  defines destination ip address for filtering\n"
                      "                    ADDRESS can be ipv4 or ipv6 address in standard format\n"
-                     "--ipsrc [PORT]      defines source port number for filtering\n"
+                     "--portsrc [PORT]    defines source port number for filtering\n"
                      "                    PORT can be any positive number\n"
-                     "--ipsrc [PORT]      defines source ip address for filtering\n"
+                     "--portdest [PORT]   defines source ip address for filtering\n"
                      "                    PORT can be any positive number\n"
                     );
               return 0;
