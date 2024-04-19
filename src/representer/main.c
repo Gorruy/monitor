@@ -54,9 +54,6 @@ static int run_queues(struct stats *result)
         ERROR_RETURN("Error in recieveing\n");
     }
 
-    mq_unlink(RECV_Q_NAME);
-    mq_unlink(SEND_Q_NAME);
-
     return 1;
 }
 
