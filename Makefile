@@ -56,8 +56,8 @@ load: tests
 
 tests: CFLAGS += -DDEBUG -ggdb3 -fno-omit-frame-pointer
 tests: build $(TESTOBJS)
-	$(CC) -I./$(INCLDIR) $(CFLAGS) $(TESTOBJS) $(SRCDIR)sniffer/arg_parser.c \
-	$(SRCDIR)sniffer/sniffer.c $(SRCDIR)sniffer/sender.c $(SNFRLDFLAGS) -o $(BINDIR)$@;
+	$(CC) -I./$(INCLDIR) $(CFLAGS) $(TESTOBJS) $(filter-out $(BUILDDIR)sniffer/main.o, $(SNFROBJS)) \
+		$(SNFRLDFLAGS) -o $(BINDIR)$@;
 	./tests/run_tests.sh;
 
 clean:

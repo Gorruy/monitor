@@ -16,7 +16,7 @@ PORT=1005
 # Tests to check ipdest:
 sudo ./bin/sniffer --interface lo --ipdest ${MY_IP} > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
-res="$(sudo ./bin/representer)" 
+res="$(sudo ./bin/representer)" && sudo pkill -2 sniffer;
 
 if [[ $res != "Number of packets:1, size of all packets in bytes:56" ]]; then
     echo "Error while checking ipdest!";
@@ -25,7 +25,7 @@ fi
 
 sudo ./bin/sniffer --interface lo --ipdest 100.100.100.100 > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
-res="$(sudo ./bin/representer)" 
+res="$(sudo ./bin/representer)" && sudo pkill -2 sniffer;
 
 if [[ $res != "Number of packets:0, size of all packets in bytes:0" ]]; then
     echo "Error while checking ipdest!";
@@ -36,7 +36,7 @@ fi
 sudo sleep 0.01;
 sudo ./bin/sniffer --interface lo --portdest ${PORT} > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
-res="$(sudo ./bin/representer)" 
+res="$(sudo ./bin/representer)" && sudo pkill -2 sniffer;
 
 if [[ $res != "Number of packets:1, size of all packets in bytes:56" ]]; then
     echo "Error while checking portdest!";
@@ -45,7 +45,7 @@ fi
 
 sudo ./bin/sniffer --interface lo --portdest 123 > /dev/null & sleep 0.2;
 echo "IP DEST TEST:" | nc -u -w0 ${MY_IP} ${PORT} & sleep 0.2;
-res="$(sudo ./bin/representer)" 
+res="$(sudo ./bin/representer)" && sudo pkill -2 sniffer;
 
 if [[ $res != "Number of packets:0, size of all packets in bytes:0" ]]; then
     echo "Error while checking portdest!";

@@ -46,6 +46,8 @@ int run_threads( parsed_args_t *reqs )
     pthread_t sniffing_thread;
     pthread_t sending_thread;
 
+    pthread_mutex_t pkt_mtx;
+
     volatile size_t pkt_len = 0;
     volatile size_t pkt_num = 0;
 
@@ -92,6 +94,8 @@ int run_threads( parsed_args_t *reqs )
     if ( pthread_join( sending_thread, (void**)&send_status ) != 0 ) {
         ERROR_RETURN("Thread join error");    
     }
+
+    pthread_mutex_destroy(&pkt_mtx);
 
     if ( sniff_status < 0 || send_status < 0 ) {
         return 0;

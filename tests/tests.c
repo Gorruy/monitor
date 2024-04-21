@@ -31,8 +31,9 @@
 #include "sniffer.h"
 #include "helpers.h"
 
-#define NUMBER_OF_TEST_RUNS 1000000
+#define NUMBER_OF_TEST_RUNS 10000000
 
+volatile int break_signal;
 
 int loadtest(int argc, char* argv[] )
 {
