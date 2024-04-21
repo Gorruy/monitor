@@ -187,8 +187,10 @@ void* sniff( void* args_struct_ptr )
         if ( packet_meets_reqs(args,  
                                buffer, 
                                &addr_info)) {
+            pthread_mutex_lock(args->pkt_mtx);
             *(args->pkt_len_ptr) += pkt_len;
             *(args->pkt_num_ptr) += 1;
+            pthread_mutex_unlock(args->pkt_mtx);
         }
     }
 

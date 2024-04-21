@@ -72,6 +72,7 @@ void* send_data_to_representer(void* args_struct_ptr)
             continue;
         }        
 
+        pthread_mutex_lock(args->pkt_mtx);
         stats_to_send[0] = *(args->pkt_num_ptr);
         stats_to_send[1] = *(args->pkt_len_ptr);
 
@@ -79,6 +80,7 @@ void* send_data_to_representer(void* args_struct_ptr)
 
         *(args->pkt_num_ptr) = 0;
         *(args->pkt_len_ptr) = 0;
+        pthread_mutex_unlock(args->pkt_mtx);
         
         if ( send_status == -1 ){
             THREAD_ERROR_RETURN("Error when sending message to queue");

@@ -175,7 +175,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
 int check_valid_ip(void)
 {
     char* ip = "1.1.1.1";
-    char buf[100];
+    uint8_t buf[100];
     if ( valid_ip(ip, buf) < 0 ) {
         return 0;
     }

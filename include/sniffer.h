@@ -39,6 +39,7 @@ typedef struct sniff_args {
     uint16_t req_port_source;
     volatile size_t *pkt_len_ptr;
     volatile size_t *pkt_num_ptr;
+    pthread_mutex_t *pkt_mtx;
 } sniff_args_t;
 
 void* sniff(void*);
