@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-MY_IP=$(hostname -I | awk '{print $1}');
+MY_IP=$(hostname -I | sudo awk '{print $1}');
 PORT=1005
 
 # load test for profiling
