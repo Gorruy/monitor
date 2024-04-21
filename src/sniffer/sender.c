@@ -6,8 +6,8 @@
 #include "sender.h"
 #include "helpers.h"
 
-#define SEND_Q_NAME "/DataQueue"
-#define RECV_Q_NAME "/NoteQueue"
+#define SEND_Q_NAME "/DataQueue" // Queue that will send data to representer
+#define RECV_Q_NAME "/NoteQueue" // Queue that will recieve notification from representer
 #define CWAIT_TIMEOUT_NSEC 1000000
 
 
@@ -56,6 +56,7 @@ void* send_data_to_representer(void* args_struct_ptr)
             THREAD_ERROR_RETURN("Error when receiving message from queue");
         }
         else if ( rcv_status != -1 ) {
+            pthread_mutex_lock(args->pkt_mtx);
             stats_to_send[0] = all_pkt_num;
             stats_to_send[1] = all_pkt_len;
 
@@ -63,6 +64,7 @@ void* send_data_to_representer(void* args_struct_ptr)
 
             all_pkt_num = 0;
             all_pkt_len = 0;
+            pthread_mutex_unlock(args->pkt_mtx);
 
             if ( send_status == -1 ){
                 THREAD_ERROR_RETURN("Error when sending message to queue");
