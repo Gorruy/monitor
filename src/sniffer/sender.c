@@ -19,8 +19,6 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <errno.h>
-#include <signal.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include "sender.h"
@@ -29,16 +27,6 @@
 #define SEND_Q_NAME "/DataQueue"
 #define RECV_Q_NAME "/NoteQueue"
 
-// Global var that signals to whole app that representer send message
-int break_signal;
-
-static void sigint_handler(int sig)
-{
-    if ( sig == SIGINT ) {
-        signal( SIGINT, SIG_DFL );
-        break_signal = 1; 
-    }
-}
 
 void* send_data_to_representer(void* args_struct_ptr)
 {
@@ -47,8 +35,6 @@ void* send_data_to_representer(void* args_struct_ptr)
        collected statistics to representer  */
     
     sender_args_t* args = (sender_args_t*)args_struct_ptr;
-
-    signal(SIGINT, sigint_handler);
 
     struct mq_attr notif_attr = {
         .mq_maxmsg = 1,

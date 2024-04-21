@@ -19,12 +19,24 @@
 #include <pthread.h>
 #include <pthread.h>
 #include <errno.h>
+#include <signal.h>
+#include <sys/types.h>
 
 #include "sniffer.h"
 #include "sender.h"
 #include "arg_parser.h"
 #include "helpers.h"
 
+// Global var that signals to whole app that representer send message
+int break_signal;
+
+static void sigint_handler(int sig)
+{
+    if ( sig == SIGINT ) {
+        signal( SIGINT, SIG_DFL );
+        break_signal = 1; 
+    }
+}
 
 int run_threads( parsed_args_t *reqs )
 {
@@ -81,6 +93,7 @@ int run_threads( parsed_args_t *reqs )
 
 int main( int argc, char *argv[] )
 {
+    signal(SIGINT, sigint_handler);
     parsed_args_t args;
     
     if ( !parse_args( argc, argv, &args ) ) {
