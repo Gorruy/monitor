@@ -40,14 +40,11 @@
 #define MAX_IP_LEN 40
 #define MAX_HEADERS_SIZE 66
 
-// array full of zeros for comparing
-static char zeros[100];
+// array full of zeros for compare purposes
+static char zeros[MAX_ADDR_SZ];
 
-static int packet_meets_reqs(char* req_ip_source,
-                             char* req_ip_dest,
-                             size_t req_port_source,
-                             size_t req_port_dest, 
-                             uint8_t* packet, 
+static int packet_meets_reqs(sniff_args_t *args,
+                             uint8_t *packet, 
                              struct sockaddr_ll *addr_info)
 {
     // Drop all tx packets
@@ -73,39 +70,46 @@ static int packet_meets_reqs(char* req_ip_source,
     }
   
     if ( ips->version == IPV4_VERSION ) {
-        if ( memcmp( req_ip_dest, zeros, sizeof(uint32_t) ) && 
-             memcmp( req_ip_dest, &ips->daddr, sizeof(uint32_t) ) != 0 ) {
-            return 0;
+        if ( memcmp( args->req_ip_dest, zeros, sizeof(uint32_t) ) != 0) { // If 0, required ip isn't given
+            if ( memcmp( args->req_ip_dest, &ips->daddr, sizeof(uint32_t) ) != 0 ) {
+                return 0;
+            }
         }
-        if ( memcmp( req_ip_source, zeros, sizeof(uint32_t) ) && 
-             memcmp( req_ip_source, &ips->saddr, sizeof(uint32_t) ) != 0 ) {
-            return 0;
+        if ( memcmp( args->req_ip_source, zeros, sizeof(uint32_t) ) != 0) {
+            if ( memcmp( args->req_ip_source, &ips->saddr, sizeof(uint32_t) ) != 0 ) {
+                return 0;
+            }
         }
         ip_hdr_offset = ips->ihl*4;
     }
     else {
         ips6 = (struct ipv6hdr*)( packet + sizeof(struct ethhdr) );
-        if ( memcmp( req_ip_dest, zeros, MAX_ADDR_SZ ) && 
-             memcmp( req_ip_dest, &ips6->daddr, MAX_ADDR_SZ ) != 0 ) {
-            return 0;
+        if ( memcmp( args->req_ip_dest, zeros, MAX_ADDR_SZ ) != 0) {
+            if ( memcmp( args->req_ip_dest, &ips6->daddr, MAX_ADDR_SZ ) != 0 ) {
+                return 0;
+            }
         }
-        if ( memcmp( req_ip_source, zeros, MAX_ADDR_SZ ) && 
-             memcmp( req_ip_source, &ips6->saddr, MAX_ADDR_SZ ) != 0 ) {
-            return 0;
+        if ( memcmp( args->req_ip_source, zeros, MAX_ADDR_SZ ) != 0) {
+            if ( memcmp( args->req_ip_source, &ips6->saddr, MAX_ADDR_SZ ) != 0 ) {
+                return 0;
+            }
         }
         ip_hdr_offset = sizeof(struct ipv6hdr);
     } 
-  
   
     // check udp header
     struct udphdr* udp;
     udp = (struct udphdr*)( packet + sizeof(struct ethhdr) + ip_hdr_offset );
   
-    if ( req_port_dest && req_port_dest != ntohs(udp->dest) ) {
-        return 0;
+    if ( args->req_port_dest ) {
+        if ( args->req_port_dest != ntohs(udp->dest) ) {
+            return 0;
+        }
     }
-    if ( req_port_source && req_port_source != ntohs(udp->source) ) {
-        return 0;
+    if ( args->req_port_source ) {
+        if ( args->req_port_source != ntohs(udp->source) ) {
+            return 0;
+        }
     }
      
     return 1;
@@ -180,10 +184,7 @@ void* sniff( void* args_struct_ptr )
             }
         }
 
-        if ( packet_meets_reqs(args->req_ip_source,
-                               args->req_ip_dest, 
-                               args->req_port_source, 
-                               args->req_port_dest,  
+        if ( packet_meets_reqs(args,  
                                buffer, 
                                &addr_info)) {
             *(args->pkt_len_ptr) += pkt_len;

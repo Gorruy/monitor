@@ -24,11 +24,11 @@
 #include "helpers.h"
 
 typedef struct parsed_args {
-    size_t interface;
-    char ip_dest[MAX_ADDR_SZ];
-    char ip_source[MAX_ADDR_SZ];
-    size_t port_dest;
-    size_t port_source;
+    unsigned interface;
+    uint8_t ip_dest[MAX_ADDR_SZ];
+    uint8_t ip_source[MAX_ADDR_SZ];
+    uint16_t port_dest;
+    uint16_t port_source;
 } parsed_args_t;
 
 int parse_args( int, char**, parsed_args_t* );

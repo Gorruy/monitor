@@ -36,8 +36,10 @@
 #include "helpers.h"
 
 
-static int valid_ip( char* ip , char* res )
+static int valid_ip( char *ip , uint8_t *res )
 {
+    /* Function checks if ip represented as string
+       is valid and stores it in res buffer*/
     struct in6_addr addr6;
     struct in_addr addr4;
 
@@ -54,7 +56,7 @@ static int valid_ip( char* ip , char* res )
     }
 }
 
-static int valid_port( char* port )
+static int valid_port( char *port )
 {
     for ( size_t i = 0; i < strlen(port); i++ )
     {
@@ -69,7 +71,7 @@ static int valid_port( char* port )
     return 1;
 }
 
-static int valid_int( char* interface )
+static int valid_int( char *interface )
 {
     int idx;
     if ( !(idx = if_nametoindex(interface)) ) {
@@ -140,7 +142,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               }
               break;
           case 'h':
-              printf("Usage: sniffer [OPTION]... [ADDRESS]...\n"
+              printf("Usage: sniffer [OPTION]... [ADDRESS/PORT]...\n"
                      "Collect statistic on incoming udp packages\n"
                      "pass it to representer\n\n"
                      "--interface [NAME]  defines interface name\n"
@@ -151,7 +153,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
                      "                    ADDRESS can be ipv4 or ipv6 address in standard format\n"
                      "--portsrc [PORT]    defines source port number for filtering\n"
                      "                    PORT can be any positive number\n"
-                     "--portdest [PORT]   defines source ip address for filtering\n"
+                     "--portdest [PORT]   defines destination port number for filtering\n"
                      "                    PORT can be any positive number\n"
                     );
               return 0;
