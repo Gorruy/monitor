@@ -28,7 +28,7 @@
 #include "helpers.h"
 
 // Global var that signals to whole app that representer send message
-int break_signal;
+volatile int break_signal;
 
 static void sigint_handler(int sig)
 {

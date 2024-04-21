@@ -24,8 +24,9 @@
 #include "sender.h"
 #include "helpers.h"
 
-#define SEND_Q_NAME "/DataQueue"
-#define RECV_Q_NAME "/NoteQueue"
+#define SEND_Q_NAME "/DataQueue" // Queue that will send data to representer
+#define RECV_Q_NAME "/NoteQueue" // Queue that will recieve notification from representer
+#define CWAIT_TIMEOUT_NSEC 1000000
 
 
 void* send_data_to_representer(void* args_struct_ptr)
