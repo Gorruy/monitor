@@ -32,7 +32,7 @@
 
 // This struct will be used to pass requriments from programm arguments and values to increment
 typedef struct sniff_args {
-    size_t interface;
+    unsigned interface;
     uint8_t *req_ip_dest;
     uint8_t *req_ip_source;
     uint16_t req_port_dest;

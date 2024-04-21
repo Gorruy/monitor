@@ -141,7 +141,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               }
               break;
           case 'h':
-              printf("Usage: sniffer [OPTION]... [ADDRESS]...\n"
+              printf("Usage: sniffer [OPTION]... [ADDRESS/PORT]...\n"
                      "Collect statistic on incoming udp packages\n"
                      "pass it to representer\n\n"
                      "--interface [NAME]  defines interface name\n"
@@ -151,9 +151,9 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
                      "--ipdest [ADDRESS]  defines destination ip address for filtering\n"
                      "                    ADDRESS can be ipv4 or ipv6 address in standard format\n"
                      "--portsrc [PORT]    defines source port number for filtering\n"
-                     "                    PORT can be any positive number\n"
-                     "--portdest [PORT]   defines source ip address for filtering\n"
-                     "                    PORT can be any positive number\n"
+                     "                    PORT can be any positive number below 65536\n"
+                     "--portdest [PORT]   defines destination port number for filtering\n"
+                     "                    PORT can be any positive number below 65536\n"
                     );
               return 0;
           case '?':
