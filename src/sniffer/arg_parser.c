@@ -108,7 +108,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
     };
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "1:2:3:4:", options, NULL)) != -1 ) {
+    while ((opt = getopt_long(argc, argv, "i:1:2:3:4:h", options, NULL)) != -1 ) {
         switch (opt) {
           case 'i':
               if ( !(args->interface = valid_int(optarg)) ) {
@@ -143,8 +143,8 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
               break;
           case 'h':
               printf("Usage: sniffer [OPTION]... [ADDRESS/PORT]...\n"
-                     "Collect statistic on incoming udp packages\n"
-                     "pass it to representer\n\n"
+                     "Collects statistic on incoming udp packages and\n"
+                     "passes it to representer\n\n"
                      "--interface [NAME]  defines interface name\n"
                      "                    NAME can be a string that represents existing interface name\n"
                      "--ipsrc [ADDRESS]   defines source ip address for filtering\n"
