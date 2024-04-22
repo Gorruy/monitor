@@ -156,7 +156,7 @@ int parse_args( int argc, char *argv[], parsed_args_t *args )
                      "--portdest [PORT]   defines destination port number for filtering\n"
                      "                    PORT can be any positive number\n"
                     );
-              return 0;
+              return -1;
           case '?':
               WRONG_OPT_RETURN("Try --help\n");
         }
