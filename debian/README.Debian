@@ -1,6 +1,7 @@
 sniffer for Debian
 ------------------------------------
 
-
+Sniffer is a program that consists of two utilities: sniffer and representer, first will collect incoming udp packet's statistics, second prints it
+You need to run sniffer with specified parameters for packets filtering, parameters can be obtained with --help command
 
  -- Vladimir Mimikin <>  Thu, 18 Apr 2024 17:25:22 +0300
