@@ -109,7 +109,11 @@ int main( int argc, char *argv[] )
     signal(SIGINT, sigint_handler);
     parsed_args_t args;
     
-    if ( !parse_args( argc, argv, &args ) ) {
+    int parse_args_res = parse_args( argc, argv, &args );
+    if ( parse_args_res == -1 ) {
+        exit(EXIT_SUCCESS);
+    }
+    else if ( !parse_args_res ) {
         ERROR_EXIT("Error while parsing options\n");
     }
 
