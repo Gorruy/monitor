@@ -1,0 +1,1465 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="310" onload="init(evt)" viewBox="0 0 1200 310" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#e0e0ff" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="310.0" fill="url(#background)"  />
+<text id="title" x="600.00" y="24" >Off-CPU Time Flame Graph</text>
+<text id="details" x="10.00" y="293" > </text>
+<text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1090.00" y="24" >Search</text>
+<text id="ignorecase" x="1174.00" y="24" >ic</text>
+<text id="matched" x="1090.00" y="293" > </text>
+<g id="frames">
+<g >
+<title>exit_to_user_mode_prepare (4 us, 0.02%)</title><rect x="11.3" y="149" width="0.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="14.34" y="159.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (90 us, 0.54%)</title><rect x="912.2" y="117" width="6.4" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="915.20" y="127.5" ></text>
+</g>
+<g >
+<title>__mq_timedreceive (3,090 us, 18.53%)</title><rect x="936.4" y="213" width="218.7" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="939.40" y="223.5" >__mq_timedreceive</text>
+</g>
+<g >
+<title>schedule (80 us, 0.48%)</title><rect x="1162.8" y="101" width="5.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1165.75" y="111.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (4 us, 0.02%)</title><rect x="11.3" y="181" width="0.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="14.34" y="191.5" ></text>
+</g>
+<g >
+<title>entry_SYSCALL_64_after_hwframe (2,416 us, 14.49%)</title><rect x="984.1" y="181" width="171.0" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="987.11" y="191.5" >entry_SYSCALL_64_after..</text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (199 us, 1.19%)</title><rect x="970.0" y="117" width="14.1" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="973.02" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (35 us, 0.21%)</title><rect x="11.6" y="149" width="2.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="14.63" y="159.5" ></text>
+</g>
+<g >
+<title>schedule (62 us, 0.37%)</title><rect x="14.1" y="117" width="4.4" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="17.11" y="127.5" ></text>
+</g>
+<g >
+<title>__librt_disable_asynccancel (54 us, 0.32%)</title><rect x="927.3" y="213" width="3.9" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="930.35" y="223.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (32 us, 0.19%)</title><rect x="1168.4" y="133" width="2.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1171.41" y="143.5" ></text>
+</g>
+<g >
+<title>schedule (30 us, 0.18%)</title><rect x="1159.7" y="101" width="2.1" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1162.71" y="111.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (584 us, 3.50%)</title><rect x="49.5" y="101" width="41.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="52.49" y="111.5" >fin..</text>
+</g>
+<g >
+<title>preempt_schedule_common (2,406 us, 14.43%)</title><rect x="400.3" y="53" width="170.3" height="15.0" fill="rgb(125,125,232)" rx="2" ry="2" />
+<text  x="403.27" y="63.5" >preempt_schedule_common</text>
+</g>
+<g >
+<title>finish_task_switch (36 us, 0.22%)</title><rect x="1155.1" y="85" width="2.6" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1158.11" y="95.5" ></text>
+</g>
+<g >
+<title>__pthread_disable_asynccancel (104 us, 0.62%)</title><rect x="11.6" y="229" width="7.4" height="15.0" fill="rgb(83,83,193)" rx="2" ry="2" />
+<text  x="14.63" y="239.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (37 us, 0.22%)</title><rect x="927.3" y="181" width="2.7" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="930.35" y="191.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (115 us, 0.69%)</title><rect x="90.8" y="101" width="8.2" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="93.83" y="111.5" ></text>
+</g>
+<g >
+<title>skb_copy_datagram_iter (4,257 us, 25.53%)</title><rect x="99.0" y="101" width="301.3" height="15.0" fill="rgb(129,129,235)" rx="2" ry="2" />
+<text  x="101.97" y="111.5" >skb_copy_datagram_iter</text>
+</g>
+<g >
+<title>schedule (35 us, 0.21%)</title><rect x="11.6" y="117" width="2.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="14.63" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (55 us, 0.33%)</title><rect x="931.2" y="149" width="3.9" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="934.17" y="159.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (95 us, 0.57%)</title><rect x="1170.7" y="117" width="6.7" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1173.68" y="127.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (33 us, 0.20%)</title><rect x="1187.7" y="85" width="2.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1190.66" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (13 us, 0.08%)</title><rect x="1161.8" y="181" width="1.0" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="1164.83" y="191.5" ></text>
+</g>
+<g >
+<title>schedule (22 us, 0.13%)</title><rect x="918.6" y="101" width="1.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="921.57" y="111.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (62 us, 0.37%)</title><rect x="14.1" y="133" width="4.4" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="17.11" y="143.5" ></text>
+</g>
+<g >
+<title>schedule (13 us, 0.08%)</title><rect x="1161.8" y="101" width="1.0" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1164.83" y="111.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (17 us, 0.10%)</title><rect x="930.0" y="85" width="1.2" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="932.96" y="95.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (62 us, 0.37%)</title><rect x="14.1" y="165" width="4.4" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="17.11" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (431 us, 2.59%)</title><rect x="19.0" y="165" width="30.5" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="21.99" y="175.5" >ir..</text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (90 us, 0.54%)</title><rect x="912.2" y="165" width="6.4" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="915.20" y="175.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (30 us, 0.18%)</title><rect x="1159.7" y="85" width="2.1" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1162.71" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (145 us, 0.87%)</title><rect x="1177.4" y="181" width="10.3" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="1180.40" y="191.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (37 us, 0.22%)</title><rect x="927.3" y="117" width="2.7" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="930.35" y="127.5" ></text>
+</g>
+<g >
+<title>__x64_sys_recvfrom (6,663 us, 39.97%)</title><rect x="99.0" y="165" width="471.6" height="15.0" fill="rgb(103,103,211)" rx="2" ry="2" />
+<text  x="101.97" y="175.5" >__x64_sys_recvfrom</text>
+</g>
+<g >
+<title>__pthread_enable_asynccancel (65 us, 0.39%)</title><rect x="1155.1" y="213" width="4.6" height="15.0" fill="rgb(88,88,197)" rx="2" ry="2" />
+<text  x="1158.11" y="223.5" ></text>
+</g>
+<g >
+<title>schedule (199 us, 1.19%)</title><rect x="970.0" y="101" width="14.1" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="973.02" y="111.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (16 us, 0.10%)</title><rect x="926.2" y="149" width="1.1" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="929.21" y="159.5" ></text>
+</g>
+<g >
+<title>sock_recvmsg (6,663 us, 39.97%)</title><rect x="99.0" y="133" width="471.6" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="101.97" y="143.5" >sock_recvmsg</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (145 us, 0.87%)</title><rect x="1177.4" y="133" width="10.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1180.40" y="143.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (55 us, 0.33%)</title><rect x="931.2" y="85" width="3.9" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="934.17" y="95.5" ></text>
+</g>
+<g >
+<title>aa_sk_perm (2,406 us, 14.43%)</title><rect x="400.3" y="85" width="170.3" height="15.0" fill="rgb(112,112,220)" rx="2" ry="2" />
+<text  x="403.27" y="95.5" >aa_sk_perm</text>
+</g>
+<g >
+<title>__skb_datagram_iter (4,257 us, 25.53%)</title><rect x="99.0" y="85" width="301.3" height="15.0" fill="rgb(126,126,232)" rx="2" ry="2" />
+<text  x="101.97" y="95.5" >__skb_datagram_iter</text>
+</g>
+<g >
+<title>do_syscall_64 (11,490 us, 68.92%)</title><rect x="99.0" y="181" width="813.2" height="15.0" fill="rgb(85,85,194)" rx="2" ry="2" />
+<text  x="101.97" y="191.5" >do_syscall_64</text>
+</g>
+<g >
+<title>irqentry_exit (145 us, 0.87%)</title><rect x="1177.4" y="149" width="10.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1180.40" y="159.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (29 us, 0.17%)</title><rect x="1157.7" y="165" width="2.0" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="1160.65" y="175.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (13 us, 0.08%)</title><rect x="1161.8" y="117" width="1.0" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1164.83" y="127.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (22 us, 0.13%)</title><rect x="918.6" y="181" width="1.5" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="921.57" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (19 us, 0.11%)</title><rect x="935.1" y="149" width="1.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="938.06" y="159.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (37 us, 0.22%)</title><rect x="927.3" y="165" width="2.7" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="930.35" y="175.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (199 us, 1.19%)</title><rect x="970.0" y="165" width="14.1" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="973.02" y="175.5" ></text>
+</g>
+<g >
+<title>common_interrupt (35 us, 0.21%)</title><rect x="11.6" y="181" width="2.5" height="15.0" fill="rgb(92,92,201)" rx="2" ry="2" />
+<text  x="14.63" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (19 us, 0.11%)</title><rect x="10.0" y="181" width="1.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="13.00" y="191.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (4 us, 0.02%)</title><rect x="11.3" y="213" width="0.3" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="14.34" y="223.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (34 us, 0.20%)</title><rect x="923.8" y="133" width="2.4" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="926.81" y="143.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (16 us, 0.10%)</title><rect x="926.2" y="181" width="1.1" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="929.21" y="191.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (4 us, 0.02%)</title><rect x="11.3" y="197" width="0.3" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="14.34" y="207.5" ></text>
+</g>
+<g >
+<title>schedule (95 us, 0.57%)</title><rect x="1170.7" y="101" width="6.7" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1173.68" y="111.5" ></text>
+</g>
+<g >
+<title>- (104 us, 0.62%)</title><rect x="11.6" y="213" width="7.4" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="14.63" y="223.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (475 us, 2.85%)</title><rect x="936.4" y="117" width="33.6" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="939.40" y="127.5" >ex..</text>
+</g>
+<g >
+<title>- (43 us, 0.26%)</title><rect x="1159.7" y="197" width="3.1" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="1162.71" y="207.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (16 us, 0.10%)</title><rect x="926.2" y="117" width="1.1" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="929.21" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (37 us, 0.22%)</title><rect x="927.3" y="149" width="2.7" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="930.35" y="159.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (30 us, 0.18%)</title><rect x="1159.7" y="149" width="2.1" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1162.71" y="159.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (4,257 us, 25.53%)</title><rect x="99.0" y="37" width="301.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="101.97" y="47.5" >finish_task_switch</text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (55 us, 0.33%)</title><rect x="931.2" y="181" width="3.9" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="934.17" y="191.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (37 us, 0.22%)</title><rect x="927.3" y="85" width="2.7" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="930.35" y="95.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (17 us, 0.10%)</title><rect x="930.0" y="117" width="1.2" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="932.96" y="127.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (90 us, 0.54%)</title><rect x="912.2" y="85" width="6.4" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="915.20" y="95.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (17 us, 0.10%)</title><rect x="930.0" y="133" width="1.2" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="932.96" y="143.5" ></text>
+</g>
+<g >
+<title>schedule (32 us, 0.19%)</title><rect x="1168.4" y="101" width="2.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1171.41" y="111.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (80 us, 0.48%)</title><rect x="1162.8" y="149" width="5.6" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1165.75" y="159.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (45 us, 0.27%)</title><rect x="920.6" y="85" width="3.2" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="923.62" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (199 us, 1.19%)</title><rect x="970.0" y="181" width="14.1" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="973.02" y="191.5" ></text>
+</g>
+<g >
+<title>recvfrom (12,620 us, 75.70%)</title><rect x="19.0" y="229" width="893.2" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="21.99" y="239.5" >recvfrom</text>
+</g>
+<g >
+<title>[Missed User Stack] (23 us, 0.14%)</title><rect x="10.0" y="229" width="1.6" height="15.0" fill="rgb(107,107,215)" rx="2" ry="2" />
+<text  x="13.00" y="239.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (33 us, 0.20%)</title><rect x="1187.7" y="181" width="2.3" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="1190.66" y="191.5" ></text>
+</g>
+<g >
+<title>schedule (19 us, 0.11%)</title><rect x="935.1" y="101" width="1.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="938.06" y="111.5" ></text>
+</g>
+<g >
+<title>schedule (19 us, 0.11%)</title><rect x="10.0" y="133" width="1.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="13.00" y="143.5" ></text>
+</g>
+<g >
+<title>schedule (45 us, 0.27%)</title><rect x="920.6" y="101" width="3.2" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="923.62" y="111.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (29 us, 0.17%)</title><rect x="1157.7" y="133" width="2.0" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1160.65" y="143.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (2,416 us, 14.49%)</title><rect x="984.1" y="133" width="171.0" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="987.11" y="143.5" >exit_to_user_mode_prep..</text>
+</g>
+<g >
+<title>irqentry_exit (115 us, 0.69%)</title><rect x="90.8" y="165" width="8.2" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="93.83" y="175.5" ></text>
+</g>
+<g >
+<title>packet_recvmsg (4,257 us, 25.53%)</title><rect x="99.0" y="117" width="301.3" height="15.0" fill="rgb(90,90,200)" rx="2" ry="2" />
+<text  x="101.97" y="127.5" >packet_recvmsg</text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (22 us, 0.13%)</title><rect x="918.6" y="117" width="1.5" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="921.57" y="127.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (115 us, 0.69%)</title><rect x="90.8" y="133" width="8.2" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="93.83" y="143.5" ></text>
+</g>
+<g >
+<title>schedule (33 us, 0.20%)</title><rect x="1187.7" y="101" width="2.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1190.66" y="111.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (19 us, 0.11%)</title><rect x="10.0" y="149" width="1.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="13.00" y="159.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (30 us, 0.18%)</title><rect x="1159.7" y="117" width="2.1" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1162.71" y="127.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (80 us, 0.48%)</title><rect x="1162.8" y="181" width="5.6" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="1165.75" y="191.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (7 us, 0.04%)</title><rect x="18.5" y="133" width="0.5" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="21.49" y="143.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (36 us, 0.22%)</title><rect x="1155.1" y="117" width="2.6" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1158.11" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (34 us, 0.20%)</title><rect x="923.8" y="149" width="2.4" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="926.81" y="159.5" ></text>
+</g>
+<g >
+<title>recvfrom (43 us, 0.26%)</title><rect x="1159.7" y="213" width="3.1" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="1162.71" y="223.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (19 us, 0.11%)</title><rect x="10.0" y="213" width="1.3" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="13.00" y="223.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (34 us, 0.20%)</title><rect x="923.8" y="85" width="2.4" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="926.81" y="95.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (199 us, 1.19%)</title><rect x="970.0" y="85" width="14.1" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="973.02" y="95.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (13 us, 0.08%)</title><rect x="1161.8" y="165" width="1.0" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="1164.83" y="175.5" ></text>
+</g>
+<g >
+<title>schedule (7 us, 0.04%)</title><rect x="920.1" y="101" width="0.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="923.13" y="111.5" ></text>
+</g>
+<g >
+<title>schedule (36 us, 0.22%)</title><rect x="1155.1" y="101" width="2.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1158.11" y="111.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (7 us, 0.04%)</title><rect x="920.1" y="117" width="0.5" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="923.13" y="127.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (2,406 us, 14.43%)</title><rect x="400.3" y="37" width="170.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="403.27" y="47.5" >finish_task_switch</text>
+</g>
+<g >
+<title>sysvec_irq_work (22 us, 0.13%)</title><rect x="918.6" y="165" width="1.5" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="921.57" y="175.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (115 us, 0.69%)</title><rect x="90.8" y="181" width="8.2" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="93.83" y="191.5" ></text>
+</g>
+<g >
+<title>- (7 us, 0.04%)</title><rect x="920.1" y="197" width="0.5" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="923.13" y="207.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (29 us, 0.17%)</title><rect x="1157.7" y="181" width="2.0" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="1160.65" y="191.5" ></text>
+</g>
+<g >
+<title>syscall_exit_to_user_mode (2,416 us, 14.49%)</title><rect x="984.1" y="149" width="171.0" height="15.0" fill="rgb(135,135,240)" rx="2" ry="2" />
+<text  x="987.11" y="159.5" >syscall_exit_to_user_m..</text>
+</g>
+<g >
+<title>finish_task_switch (4,827 us, 28.95%)</title><rect x="570.6" y="117" width="341.6" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="573.56" y="127.5" >finish_task_switch</text>
+</g>
+<g >
+<title>syscall_exit_to_user_mode (4,827 us, 28.95%)</title><rect x="570.6" y="165" width="341.6" height="15.0" fill="rgb(135,135,240)" rx="2" ry="2" />
+<text  x="573.56" y="175.5" >syscall_exit_to_user_mode</text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (7 us, 0.04%)</title><rect x="18.5" y="197" width="0.5" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="21.49" y="207.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (7 us, 0.04%)</title><rect x="920.1" y="165" width="0.5" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="923.13" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (90 us, 0.54%)</title><rect x="912.2" y="149" width="6.4" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="915.20" y="159.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (55 us, 0.33%)</title><rect x="931.2" y="165" width="3.9" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="934.17" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (115 us, 0.69%)</title><rect x="90.8" y="149" width="8.2" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="93.83" y="159.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (145 us, 0.87%)</title><rect x="1177.4" y="85" width="10.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1180.40" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (62 us, 0.37%)</title><rect x="14.1" y="197" width="4.4" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="17.11" y="207.5" ></text>
+</g>
+<g >
+<title>- (95 us, 0.57%)</title><rect x="920.6" y="197" width="6.7" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="923.62" y="207.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (584 us, 3.50%)</title><rect x="49.5" y="181" width="41.3" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="52.49" y="191.5" >sys..</text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (80 us, 0.48%)</title><rect x="1162.8" y="117" width="5.6" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1165.75" y="127.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (17 us, 0.10%)</title><rect x="930.0" y="165" width="1.2" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="932.96" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (199 us, 1.19%)</title><rect x="970.0" y="133" width="14.1" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="973.02" y="143.5" ></text>
+</g>
+<g >
+<title>__cond_resched (4,257 us, 25.53%)</title><rect x="99.0" y="69" width="301.3" height="15.0" fill="rgb(95,95,204)" rx="2" ry="2" />
+<text  x="101.97" y="79.5" >__cond_resched</text>
+</g>
+<g >
+<title>common_interrupt (36 us, 0.22%)</title><rect x="1155.1" y="165" width="2.6" height="15.0" fill="rgb(92,92,201)" rx="2" ry="2" />
+<text  x="1158.11" y="175.5" ></text>
+</g>
+<g >
+<title>[unknown] (112 us, 0.67%)</title><rect x="912.2" y="213" width="7.9" height="15.0" fill="rgb(86,86,195)" rx="2" ry="2" />
+<text  x="915.20" y="223.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (32 us, 0.19%)</title><rect x="1168.4" y="181" width="2.3" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="1171.41" y="191.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (475 us, 2.85%)</title><rect x="936.4" y="165" width="33.6" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="939.40" y="175.5" >sy..</text>
+</g>
+<g >
+<title>irqentry_exit (475 us, 2.85%)</title><rect x="936.4" y="149" width="33.6" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="939.40" y="159.5" >ir..</text>
+</g>
+<g >
+<title>sysvec_irq_work (33 us, 0.20%)</title><rect x="1187.7" y="165" width="2.3" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="1190.66" y="175.5" ></text>
+</g>
+<g >
+<title>schedule (4 us, 0.02%)</title><rect x="11.3" y="133" width="0.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="14.34" y="143.5" ></text>
+</g>
+<g >
+<title>asm_common_interrupt (45 us, 0.27%)</title><rect x="920.6" y="181" width="3.2" height="15.0" fill="rgb(107,107,215)" rx="2" ry="2" />
+<text  x="923.62" y="191.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (29 us, 0.17%)</title><rect x="1157.7" y="117" width="2.0" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1160.65" y="127.5" ></text>
+</g>
+<g >
+<title>__errno_location (95 us, 0.57%)</title><rect x="920.6" y="213" width="6.7" height="15.0" fill="rgb(114,114,221)" rx="2" ry="2" />
+<text  x="923.62" y="223.5" ></text>
+</g>
+<g >
+<title>all (16,672 us, 100%)</title><rect x="10.0" y="261" width="1180.0" height="15.0" fill="rgb(90,90,199)" rx="2" ry="2" />
+<text  x="13.00" y="271.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (62 us, 0.37%)</title><rect x="14.1" y="101" width="4.4" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="17.11" y="111.5" ></text>
+</g>
+<g >
+<title>- (54 us, 0.32%)</title><rect x="927.3" y="197" width="3.9" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="930.35" y="207.5" ></text>
+</g>
+<g >
+<title>common_interrupt (95 us, 0.57%)</title><rect x="1170.7" y="165" width="6.7" height="15.0" fill="rgb(92,92,201)" rx="2" ry="2" />
+<text  x="1173.68" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (584 us, 3.50%)</title><rect x="49.5" y="149" width="41.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="52.49" y="159.5" >irq..</text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (19 us, 0.11%)</title><rect x="935.1" y="181" width="1.3" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="938.06" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (95 us, 0.57%)</title><rect x="1170.7" y="149" width="6.7" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1173.68" y="159.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (16 us, 0.10%)</title><rect x="926.2" y="85" width="1.1" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="929.21" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (30 us, 0.18%)</title><rect x="1159.7" y="181" width="2.1" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="1162.71" y="191.5" ></text>
+</g>
+<g >
+<title>schedule (584 us, 3.50%)</title><rect x="49.5" y="117" width="41.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="52.49" y="127.5" >sch..</text>
+</g>
+<g >
+<title>finish_task_switch (32 us, 0.19%)</title><rect x="1168.4" y="85" width="2.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1171.41" y="95.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (80 us, 0.48%)</title><rect x="1162.8" y="85" width="5.6" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1165.75" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (34 us, 0.20%)</title><rect x="923.8" y="181" width="2.4" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="926.81" y="191.5" ></text>
+</g>
+<g >
+<title>- (65 us, 0.39%)</title><rect x="1155.1" y="197" width="4.6" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="1158.11" y="207.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (19 us, 0.11%)</title><rect x="935.1" y="117" width="1.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="938.06" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (19 us, 0.11%)</title><rect x="10.0" y="165" width="1.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="13.00" y="175.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (7 us, 0.04%)</title><rect x="18.5" y="101" width="0.5" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="21.49" y="111.5" ></text>
+</g>
+<g >
+<title>schedule (37 us, 0.22%)</title><rect x="927.3" y="101" width="2.7" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="930.35" y="111.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (145 us, 0.87%)</title><rect x="1177.4" y="117" width="10.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1180.40" y="127.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (32 us, 0.19%)</title><rect x="1168.4" y="117" width="2.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1171.41" y="127.5" ></text>
+</g>
+<g >
+<title>asm_common_interrupt (431 us, 2.59%)</title><rect x="19.0" y="197" width="30.5" height="15.0" fill="rgb(107,107,215)" rx="2" ry="2" />
+<text  x="21.99" y="207.5" >as..</text>
+</g>
+<g >
+<title>common_interrupt (45 us, 0.27%)</title><rect x="920.6" y="165" width="3.2" height="15.0" fill="rgb(92,92,201)" rx="2" ry="2" />
+<text  x="923.62" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (431 us, 2.59%)</title><rect x="19.0" y="149" width="30.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="21.99" y="159.5" >ir..</text>
+</g>
+<g >
+<title>irqentry_exit (22 us, 0.13%)</title><rect x="918.6" y="149" width="1.5" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="921.57" y="159.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (13 us, 0.08%)</title><rect x="1161.8" y="133" width="1.0" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1164.83" y="143.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (33 us, 0.20%)</title><rect x="1187.7" y="117" width="2.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="1190.66" y="127.5" ></text>
+</g>
+<g >
+<title>schedule (431 us, 2.59%)</title><rect x="19.0" y="117" width="30.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="21.99" y="127.5" >sc..</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (55 us, 0.33%)</title><rect x="931.2" y="133" width="3.9" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="934.17" y="143.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (35 us, 0.21%)</title><rect x="11.6" y="165" width="2.5" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="14.63" y="175.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (35 us, 0.21%)</title><rect x="11.6" y="133" width="2.5" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="14.63" y="143.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (431 us, 2.59%)</title><rect x="19.0" y="133" width="30.5" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="21.99" y="143.5" >ex..</text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (90 us, 0.54%)</title><rect x="912.2" y="181" width="6.4" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="915.20" y="191.5" ></text>
+</g>
+<g >
+<title>- (12,620 us, 75.70%)</title><rect x="19.0" y="213" width="893.2" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="21.99" y="223.5" >-</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (7 us, 0.04%)</title><rect x="920.1" y="133" width="0.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="923.13" y="143.5" ></text>
+</g>
+<g >
+<title>__GI___pthread_mutex_lock (7 us, 0.04%)</title><rect x="920.1" y="213" width="0.5" height="15.0" fill="rgb(132,132,238)" rx="2" ry="2" />
+<text  x="923.13" y="223.5" ></text>
+</g>
+<g >
+<title>schedule (145 us, 0.87%)</title><rect x="1177.4" y="101" width="10.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1180.40" y="111.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (7 us, 0.04%)</title><rect x="920.1" y="149" width="0.5" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="923.13" y="159.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (19 us, 0.11%)</title><rect x="935.1" y="85" width="1.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="938.06" y="95.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (145 us, 0.87%)</title><rect x="1177.4" y="165" width="10.3" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="1180.40" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (80 us, 0.48%)</title><rect x="1162.8" y="133" width="5.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1165.75" y="143.5" ></text>
+</g>
+<g >
+<title>- (112 us, 0.67%)</title><rect x="912.2" y="197" width="7.9" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="915.20" y="207.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (55 us, 0.33%)</title><rect x="931.2" y="117" width="3.9" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="934.17" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (22 us, 0.13%)</title><rect x="918.6" y="133" width="1.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="921.57" y="143.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (7 us, 0.04%)</title><rect x="18.5" y="181" width="0.5" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="21.49" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (36 us, 0.22%)</title><rect x="1155.1" y="149" width="2.6" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1158.11" y="159.5" ></text>
+</g>
+<g >
+<title>- (112 us, 0.67%)</title><rect x="1162.8" y="197" width="7.9" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="1165.75" y="207.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (37 us, 0.22%)</title><rect x="927.3" y="133" width="2.7" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="930.35" y="143.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (32 us, 0.19%)</title><rect x="1168.4" y="149" width="2.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1171.41" y="159.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (29 us, 0.17%)</title><rect x="1157.7" y="85" width="2.0" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1160.65" y="95.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (2,416 us, 14.49%)</title><rect x="984.1" y="101" width="171.0" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="987.11" y="111.5" >finish_task_switch</text>
+</g>
+<g >
+<title>finish_task_switch (95 us, 0.57%)</title><rect x="1170.7" y="85" width="6.7" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1173.68" y="95.5" ></text>
+</g>
+<g >
+<title>schedule (17 us, 0.10%)</title><rect x="930.0" y="101" width="1.2" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="932.96" y="111.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (19 us, 0.11%)</title><rect x="935.1" y="165" width="1.3" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="938.06" y="175.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (80 us, 0.48%)</title><rect x="1162.8" y="165" width="5.6" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="1165.75" y="175.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (29 us, 0.17%)</title><rect x="1157.7" y="149" width="2.0" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1160.65" y="159.5" ></text>
+</g>
+<g >
+<title>sysvec_irq_work (16 us, 0.10%)</title><rect x="926.2" y="165" width="1.1" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="929.21" y="175.5" ></text>
+</g>
+<g >
+<title>security_socket_recvmsg (2,406 us, 14.43%)</title><rect x="400.3" y="117" width="170.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="403.27" y="127.5" >security_socket_recvmsg</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (4 us, 0.02%)</title><rect x="11.3" y="165" width="0.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="14.34" y="175.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (584 us, 3.50%)</title><rect x="49.5" y="133" width="41.3" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="52.49" y="143.5" >exi..</text>
+</g>
+<g >
+<title>schedule (16 us, 0.10%)</title><rect x="926.2" y="101" width="1.1" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="929.21" y="111.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (30 us, 0.18%)</title><rect x="1159.7" y="165" width="2.1" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="1162.71" y="175.5" ></text>
+</g>
+<g >
+<title>schedule (475 us, 2.85%)</title><rect x="936.4" y="101" width="33.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="939.40" y="111.5" >sc..</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (90 us, 0.54%)</title><rect x="912.2" y="133" width="6.4" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="915.20" y="143.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (45 us, 0.27%)</title><rect x="920.6" y="133" width="3.2" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="923.62" y="143.5" ></text>
+</g>
+<g >
+<title>sniff (273 us, 1.64%)</title><rect x="1170.7" y="213" width="19.3" height="15.0" fill="rgb(90,90,199)" rx="2" ry="2" />
+<text  x="1173.68" y="223.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (19 us, 0.11%)</title><rect x="935.1" y="133" width="1.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="938.06" y="143.5" ></text>
+</g>
+<g >
+<title>schedule (34 us, 0.20%)</title><rect x="923.8" y="101" width="2.4" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="926.81" y="111.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (584 us, 3.50%)</title><rect x="49.5" y="165" width="41.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="52.49" y="175.5" >irq..</text>
+</g>
+<g >
+<title>irqentry_exit (13 us, 0.08%)</title><rect x="1161.8" y="149" width="1.0" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1164.83" y="159.5" ></text>
+</g>
+<g >
+<title>schedule (55 us, 0.33%)</title><rect x="931.2" y="101" width="3.9" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="934.17" y="111.5" ></text>
+</g>
+<g >
+<title>- (74 us, 0.44%)</title><rect x="931.2" y="197" width="5.2" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="934.17" y="207.5" ></text>
+</g>
+<g >
+<title>schedule (7 us, 0.04%)</title><rect x="18.5" y="117" width="0.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="21.49" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (95 us, 0.57%)</title><rect x="1170.7" y="133" width="6.7" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1173.68" y="143.5" ></text>
+</g>
+<g >
+<title>- (273 us, 1.64%)</title><rect x="1170.7" y="197" width="19.3" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="1173.68" y="207.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (7 us, 0.04%)</title><rect x="18.5" y="149" width="0.5" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="21.49" y="159.5" ></text>
+</g>
+<g >
+<title>__librt_enable_asynccancel (74 us, 0.44%)</title><rect x="931.2" y="213" width="5.2" height="15.0" fill="rgb(102,102,210)" rx="2" ry="2" />
+<text  x="934.17" y="223.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (34 us, 0.20%)</title><rect x="923.8" y="165" width="2.4" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="926.81" y="175.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (7 us, 0.04%)</title><rect x="920.1" y="85" width="0.5" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="923.13" y="95.5" ></text>
+</g>
+<g >
+<title>start_thread (3,925 us, 23.54%)</title><rect x="912.2" y="229" width="277.8" height="15.0" fill="rgb(89,89,198)" rx="2" ry="2" />
+<text  x="915.20" y="239.5" >start_thread</text>
+</g>
+<g >
+<title>finish_task_switch (19 us, 0.11%)</title><rect x="10.0" y="117" width="1.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="13.00" y="127.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (35 us, 0.21%)</title><rect x="11.6" y="101" width="2.5" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="14.63" y="111.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (22 us, 0.13%)</title><rect x="918.6" y="85" width="1.5" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="921.57" y="95.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (7 us, 0.04%)</title><rect x="920.1" y="181" width="0.5" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="923.13" y="191.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (4,827 us, 28.95%)</title><rect x="570.6" y="149" width="341.6" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="573.56" y="159.5" >exit_to_user_mode_prepare</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (16 us, 0.10%)</title><rect x="926.2" y="133" width="1.1" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="929.21" y="143.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (17 us, 0.10%)</title><rect x="930.0" y="149" width="1.2" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="932.96" y="159.5" ></text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (19 us, 0.11%)</title><rect x="10.0" y="197" width="1.3" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="13.00" y="207.5" ></text>
+</g>
+<g >
+<title>entry_SYSCALL_64_after_hwframe (11,490 us, 68.92%)</title><rect x="99.0" y="197" width="813.2" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="101.97" y="207.5" >entry_SYSCALL_64_after_hwframe</text>
+</g>
+<g >
+<title>finish_task_switch (13 us, 0.08%)</title><rect x="1161.8" y="85" width="1.0" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="1164.83" y="95.5" ></text>
+</g>
+<g >
+<title>sniffer (16,672 us, 100.00%)</title><rect x="10.0" y="245" width="1180.0" height="15.0" fill="rgb(104,104,212)" rx="2" ry="2" />
+<text  x="13.00" y="255.5" >sniffer</text>
+</g>
+<g >
+<title>irqentry_exit (45 us, 0.27%)</title><rect x="920.6" y="149" width="3.2" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="923.62" y="159.5" ></text>
+</g>
+<g >
+<title>schedule (90 us, 0.54%)</title><rect x="912.2" y="101" width="6.4" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="915.20" y="111.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (4 us, 0.02%)</title><rect x="11.3" y="117" width="0.3" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="14.34" y="127.5" ></text>
+</g>
+<g >
+<title>schedule (29 us, 0.17%)</title><rect x="1157.7" y="101" width="2.0" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1160.65" y="111.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (17 us, 0.10%)</title><rect x="930.0" y="181" width="1.2" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="932.96" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (33 us, 0.20%)</title><rect x="1187.7" y="133" width="2.3" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1190.66" y="143.5" ></text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (475 us, 2.85%)</title><rect x="936.4" y="181" width="33.6" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="939.40" y="191.5" >as..</text>
+</g>
+<g >
+<title>asm_sysvec_irq_work (115 us, 0.69%)</title><rect x="90.8" y="197" width="8.2" height="15.0" fill="rgb(96,96,205)" rx="2" ry="2" />
+<text  x="93.83" y="207.5" ></text>
+</g>
+<g >
+<title>asm_common_interrupt (36 us, 0.22%)</title><rect x="1155.1" y="181" width="2.6" height="15.0" fill="rgb(107,107,215)" rx="2" ry="2" />
+<text  x="1158.11" y="191.5" ></text>
+</g>
+<g >
+<title>preempt_schedule_common (4,257 us, 25.53%)</title><rect x="99.0" y="53" width="301.3" height="15.0" fill="rgb(125,125,232)" rx="2" ry="2" />
+<text  x="101.97" y="63.5" >preempt_schedule_common</text>
+</g>
+<g >
+<title>schedule (4,827 us, 28.95%)</title><rect x="570.6" y="133" width="341.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="573.56" y="143.5" >schedule</text>
+</g>
+<g >
+<title>__sys_recvfrom (6,663 us, 39.97%)</title><rect x="99.0" y="149" width="471.6" height="15.0" fill="rgb(131,131,237)" rx="2" ry="2" />
+<text  x="101.97" y="159.5" >__sys_recvfrom</text>
+</g>
+<g >
+<title>asm_common_interrupt (95 us, 0.57%)</title><rect x="1170.7" y="181" width="6.7" height="15.0" fill="rgb(107,107,215)" rx="2" ry="2" />
+<text  x="1173.68" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (33 us, 0.20%)</title><rect x="1187.7" y="149" width="2.3" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="1190.66" y="159.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (475 us, 2.85%)</title><rect x="936.4" y="133" width="33.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="939.40" y="143.5" >ir..</text>
+</g>
+<g >
+<title>sysvec_apic_timer_interrupt (62 us, 0.37%)</title><rect x="14.1" y="181" width="4.4" height="15.0" fill="rgb(98,98,206)" rx="2" ry="2" />
+<text  x="17.11" y="191.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (30 us, 0.18%)</title><rect x="1159.7" y="133" width="2.1" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1162.71" y="143.5" ></text>
+</g>
+<g >
+<title>common_interrupt (431 us, 2.59%)</title><rect x="19.0" y="181" width="30.5" height="15.0" fill="rgb(92,92,201)" rx="2" ry="2" />
+<text  x="21.99" y="191.5" >co..</text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (36 us, 0.22%)</title><rect x="1155.1" y="133" width="2.6" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="1158.11" y="143.5" ></text>
+</g>
+<g >
+<title>finish_task_switch (431 us, 2.59%)</title><rect x="19.0" y="101" width="30.5" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="21.99" y="111.5" >fi..</text>
+</g>
+<g >
+<title>asm_sysvec_apic_timer_interrupt (584 us, 3.50%)</title><rect x="49.5" y="197" width="41.3" height="15.0" fill="rgb(113,113,220)" rx="2" ry="2" />
+<text  x="52.49" y="207.5" >asm..</text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (34 us, 0.20%)</title><rect x="923.8" y="117" width="2.4" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="926.81" y="127.5" ></text>
+</g>
+<g >
+<title>send_data_to_representer (112 us, 0.67%)</title><rect x="1162.8" y="213" width="7.9" height="15.0" fill="rgb(86,86,195)" rx="2" ry="2" />
+<text  x="1165.75" y="223.5" ></text>
+</g>
+<g >
+<title>schedule (2,416 us, 14.49%)</title><rect x="984.1" y="117" width="171.0" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="987.11" y="127.5" >schedule</text>
+</g>
+<g >
+<title>do_syscall_64 (2,416 us, 14.49%)</title><rect x="984.1" y="165" width="171.0" height="15.0" fill="rgb(85,85,194)" rx="2" ry="2" />
+<text  x="987.11" y="175.5" >do_syscall_64</text>
+</g>
+<g >
+<title>asm_common_interrupt (35 us, 0.21%)</title><rect x="11.6" y="197" width="2.5" height="15.0" fill="rgb(107,107,215)" rx="2" ry="2" />
+<text  x="14.63" y="207.5" ></text>
+</g>
+<g >
+<title>irqentry_exit_to_user_mode (62 us, 0.37%)</title><rect x="14.1" y="149" width="4.4" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="17.11" y="159.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (7 us, 0.04%)</title><rect x="18.5" y="165" width="0.5" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="21.49" y="175.5" ></text>
+</g>
+<g >
+<title>__cond_resched (2,406 us, 14.43%)</title><rect x="400.3" y="69" width="170.3" height="15.0" fill="rgb(95,95,204)" rx="2" ry="2" />
+<text  x="403.27" y="79.5" >__cond_resched</text>
+</g>
+<g >
+<title>sysvec_irq_work (32 us, 0.19%)</title><rect x="1168.4" y="165" width="2.3" height="15.0" fill="rgb(81,81,191)" rx="2" ry="2" />
+<text  x="1171.41" y="175.5" ></text>
+</g>
+<g >
+<title>- (3,090 us, 18.53%)</title><rect x="936.4" y="197" width="218.7" height="15.0" fill="rgb(200,200,200)" rx="2" ry="2" />
+<text  x="939.40" y="207.5" >-</text>
+</g>
+<g >
+<title>finish_task_switch (475 us, 2.85%)</title><rect x="936.4" y="85" width="33.6" height="15.0" fill="rgb(115,115,222)" rx="2" ry="2" />
+<text  x="939.40" y="95.5" >fi..</text>
+</g>
+<g >
+<title>apparmor_socket_recvmsg (2,406 us, 14.43%)</title><rect x="400.3" y="101" width="170.3" height="15.0" fill="rgb(129,129,235)" rx="2" ry="2" />
+<text  x="403.27" y="111.5" >apparmor_socket_recvmsg</text>
+</g>
+<g >
+<title>schedule (115 us, 0.69%)</title><rect x="90.8" y="117" width="8.2" height="15.0" fill="rgb(139,139,244)" rx="2" ry="2" />
+<text  x="93.83" y="127.5" ></text>
+</g>
+<g >
+<title>irqentry_exit (199 us, 1.19%)</title><rect x="970.0" y="149" width="14.1" height="15.0" fill="rgb(97,97,205)" rx="2" ry="2" />
+<text  x="973.02" y="159.5" ></text>
+</g>
+<g >
+<title>exit_to_user_mode_prepare (45 us, 0.27%)</title><rect x="920.6" y="117" width="3.2" height="15.0" fill="rgb(108,108,215)" rx="2" ry="2" />
+<text  x="923.62" y="127.5" ></text>
+</g>
+</g>
+</svg>
