@@ -1,4 +1,4 @@
-sniffer (0.1) experimental; urgency=low
+sniffer (0.1-1) experimental; urgency=low
 
   * Initial release. Program sniffs udp packets at given interface.
 
