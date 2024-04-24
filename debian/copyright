@@ -1,8 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: sniffer
 Source: <https://github.com/Gorruy/sniffer>
-#
-# Please double check copyright with the licensecheck(1) command.
 
 Files:     .gitignore
            .vscode/settings.json
