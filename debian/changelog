@@ -1,5 +1,5 @@
-sniffer (0.1-1) unstable; urgency=low
+sniffer (0.1) experimental; urgency=low
 
-  * Initial release. Programm sniffs udp packets at given interface.
+  * Initial release. Program sniffs udp packets at given interface.
 
  -- Vladimir Mimikin <vladimirmimikin@gmail.com>  Thu, 18 Apr 2024 17:25:22 +0300
