@@ -1,8 +1,8 @@
 Source: sniffer
 Section: utils
 Priority: optional
-Maintainer: Vladimir Mimikin <>
-Build-Depends:  debhelper-compat (= 11), debhelper (>=11~), make, gcc
+Maintainer: Vladimir Mimikin <vladimirmimikin@gmail.com>
+Build-Depends: debhelper-compat (= 11), gcc, make
 Standards-Version: 4.1.4
 
 Package: sniffer
@@ -10,3 +10,4 @@ Architecture: amd64
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: cli app for udp packet sniffing
+  contains 2 executables
