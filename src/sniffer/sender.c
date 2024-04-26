@@ -90,103 +90,94 @@ void* send_data_to_representer(void* args_struct_ptr)
     /* Creates a posix message queue and starts listening for
        signal from representer proccess, after which it sends 
        collected statistics to representer  */
+
+    pid_t ubusd_pid = fork();
+    if (!ubusd_pid) {
+        !execl( "/usr/bin/sudo", "/usr/bin/sudo", "/usr/local/sbin/ubusd", (char*)NULL );
+    }
+    else {
        
-    const char *ubus_socket = NULL;
-	int ret = 0;
-	int ch;
+        const char *ubus_socket = NULL;
+        int ret = 0;
+        int ch;
 
-	ctx = ubus_connect(ubus_socket);
-	if (!ctx) {
-		fprintf(stderr, "Failed to connect to ubus\n");
-		return -1;
-	}
+        ctx = ubus_connect(ubus_socket);
+        if (!ctx) {
+            fprintf(stderr, "Failed to connect to ubus\n");
+            return -1;
+        }
 
-	ret = ubus_add_object(ctx, &test_object);
-	if (ret)
-		fprintf(stderr, "Failed to add_object object: %s\n", ubus_strerror(ret));
+        ret = ubus_add_object(ctx, &test_object);
+        if (ret)
+            fprintf(stderr, "Failed to add_object object: %s\n", ubus_strerror(ret));
 
-	ret = ubus_add_object(ctx, &test_object2);
-	if (ret)
-		fprintf(stderr, "Failed to add_object object: %s\n", ubus_strerror(ret));
+        ret = ubus_add_object(ctx, &test_object2);
+        if (ret)
+            fprintf(stderr, "Failed to add_object object: %s\n", ubus_strerror(ret));
 
-	uloop_init();
-	ubus_add_uloop(ctx);
-	uloop_run();
-	uloop_done();
+        uloop_init();
+        ubus_add_uloop(ctx);
+        uloop_run();
+        uloop_done();
 
-	ubus_free(ctx);
-	return 0;
+        // sender_args_t* args = (sender_args_t*)args_struct_ptr;
 
-    uloop_init();
-    struct ubus_context *ctx = ubus_connect(NULL);
-    if (!ctx) {
-        THREAD_ERROR_RETURN("Failed to connect to ubus!\n");
+        // struct mq_attr notif_attr = {
+        //     .mq_maxmsg = 1,
+        //     .mq_msgsize = sizeof(size_t)
+        // };
+
+        // struct mq_attr data_attr = {
+        //     .mq_maxmsg = 1,
+        //     .mq_msgsize = sizeof(size_t)*2
+        // };
+
+        // mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT | O_NONBLOCK, 0666, &notif_attr);
+        // if ( notif_q == (mqd_t) -1 ) {
+        //     THREAD_ERROR_RETURN("Error in queue creation!");
+        // }
+
+        // mqd_t data_q = mq_open(SEND_Q_NAME, O_WRONLY | O_CREAT, 0666, &data_attr);
+        // if ( data_q == (mqd_t) -1 ) {
+        //     THREAD_ERROR_RETURN("Error in queue creation!");
+        // }
+
+        // size_t note[2];
+        // size_t stats_to_send[2] = {0};
+        // int rcv_status;
+        // int send_status;
+
+        // while (!break_signal) {
+        //     rcv_status = mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL);
+
+        //     if ( rcv_status == -1 && errno != EAGAIN) {
+        //         THREAD_ERROR_RETURN("Error when receiving message from queue");
+        //     }
+        //     else if ( rcv_status == -1 ) {
+        //         continue;
+        //     }        
+
+        //     pthread_mutex_lock(args->pkt_mtx);
+        //     stats_to_send[0] = *(args->pkt_num_ptr);
+        //     stats_to_send[1] = *(args->pkt_len_ptr);
+
+        //     send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
+
+        //     *(args->pkt_num_ptr) = 0;
+        //     *(args->pkt_len_ptr) = 0;
+        //     pthread_mutex_unlock(args->pkt_mtx);
+            
+        //     if ( send_status == -1 ){
+        //         THREAD_ERROR_RETURN("Error when sending message to queue");
+        //     }
+        // }
+
+        // mq_unlink(RECV_Q_NAME);
+        // mq_unlink(SEND_Q_NAME);
+
+
     }
-
-    ubus_add_uloop(ctx);
-
-    int ret = ubus_add_object(ctx, &test_object);
-    if (ret) {
-        THREAD_ERROR_RETURN("Failed to add object\n");
-    }
-
-    uloop_run();
-
-    // sender_args_t* args = (sender_args_t*)args_struct_ptr;
-
-    // struct mq_attr notif_attr = {
-    //     .mq_maxmsg = 1,
-    //     .mq_msgsize = sizeof(size_t)
-    // };
-
-    // struct mq_attr data_attr = {
-    //     .mq_maxmsg = 1,
-    //     .mq_msgsize = sizeof(size_t)*2
-    // };
-
-    // mqd_t notif_q = mq_open(RECV_Q_NAME, O_RDONLY | O_CREAT | O_NONBLOCK, 0666, &notif_attr);
-    // if ( notif_q == (mqd_t) -1 ) {
-    //     THREAD_ERROR_RETURN("Error in queue creation!");
-    // }
-
-    // mqd_t data_q = mq_open(SEND_Q_NAME, O_WRONLY | O_CREAT, 0666, &data_attr);
-    // if ( data_q == (mqd_t) -1 ) {
-    //     THREAD_ERROR_RETURN("Error in queue creation!");
-    // }
-
-    // size_t note[2];
-    // size_t stats_to_send[2] = {0};
-    // int rcv_status;
-    // int send_status;
-
-    // while (!break_signal) {
-    //     rcv_status = mq_receive(notif_q, (char*)note, sizeof(size_t)*2, NULL);
-
-    //     if ( rcv_status == -1 && errno != EAGAIN) {
-    //         THREAD_ERROR_RETURN("Error when receiving message from queue");
-    //     }
-    //     else if ( rcv_status == -1 ) {
-    //         continue;
-    //     }        
-
-    //     pthread_mutex_lock(args->pkt_mtx);
-    //     stats_to_send[0] = *(args->pkt_num_ptr);
-    //     stats_to_send[1] = *(args->pkt_len_ptr);
-
-    //     send_status = mq_send(data_q, (char*)&stats_to_send, sizeof(size_t)*2, 0);
-
-    //     *(args->pkt_num_ptr) = 0;
-    //     *(args->pkt_len_ptr) = 0;
-    //     pthread_mutex_unlock(args->pkt_mtx);
-        
-    //     if ( send_status == -1 ){
-    //         THREAD_ERROR_RETURN("Error when sending message to queue");
-    //     }
-    // }
-
-    // mq_unlink(RECV_Q_NAME);
-    // mq_unlink(SEND_Q_NAME);
-
+    kill( SIGINT, ubusd_pid );
     ubus_free(ctx);
     uloop_done();
 
