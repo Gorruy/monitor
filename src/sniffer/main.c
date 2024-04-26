@@ -27,7 +27,7 @@
 #include "arg_parser.h"
 #include "helpers.h"
 
-// Global var that signals to whole app that representer send message
+// Global variable that tells threads to finish
 volatile int break_signal;
 
 static void sigint_handler(int sig)
