@@ -2,7 +2,7 @@ CC = gcc
 
 CFLAGS = -O2 -Wall
 
-SNFRLDFLAGS = -lpthread -lrt
+SNFRLDFLAGS = -lpthread -lrt -lubus -lubox
 RPSTLDFLAGS = -lrt
 
 SRCDIR = src/
