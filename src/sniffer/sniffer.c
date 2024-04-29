@@ -114,7 +114,6 @@ void* sniff( void* args_struct_ptr )
       if some are given  */
 
     struct sockaddr_ll addr_info;
-    struct ifreq rq;
     struct packet_mreq mreq;
     struct sockaddr_ll int_to_bind;
 
@@ -122,7 +121,6 @@ void* sniff( void* args_struct_ptr )
     socklen_t info_len = sizeof(struct sockaddr_ll);
 
     memset( &addr_info, 0, sizeof(struct sockaddr_ll) );
-    memset( &rq, 0, sizeof(struct ifreq) );
     memset( &mreq, 0, sizeof(struct packet_mreq) );
     memset( &int_to_bind, 0, sizeof(struct sockaddr_ll) );
 
@@ -140,6 +138,7 @@ void* sniff( void* args_struct_ptr )
     int_to_bind.sll_family = AF_PACKET;
     int_to_bind.sll_protocol = htons(ETH_P_IP);
 
+    // Binding socket to specific interface
     if ( bind(raw_socket, 
               (struct sockaddr*)&int_to_bind, 
               sizeof(struct sockaddr_ll)) < 0 ) {
@@ -149,6 +148,7 @@ void* sniff( void* args_struct_ptr )
     mreq.mr_ifindex = args->interface;
     mreq.mr_type = PACKET_MR_PROMISC;
 
+    // Will turn interface to promiscuous mode
     if ( setsockopt(raw_socket, 
                     SOL_PACKET, 
                     PACKET_MR_PROMISC,

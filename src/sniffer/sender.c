@@ -32,7 +32,7 @@
 void* send_data_to_representer(void* args_struct_ptr)
 {
     /* Creates a posix message queue and starts listening for
-       signal from representer proccess, after which it sends 
+       signal from representer process, after which it sends 
        collected statistics to representer  */
        
     struct timespec timeout = {
