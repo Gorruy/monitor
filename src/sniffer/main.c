@@ -105,7 +105,7 @@ int main( int argc, char *argv[] )
     parsed_args_t args;
     
     int parse_args_res = parse_args( argc, argv, &args );
-    if ( parse_args_res == -1 ) {
+    if ( parse_args_res == -1 ) { // --help option were given
         exit(EXIT_SUCCESS);
     }
     else if ( !parse_args_res ) {

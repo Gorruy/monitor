@@ -31,10 +31,10 @@
 void* send_data_to_representer(void* args_struct_ptr)
 {
     /* Creates a posix message queue and starts listening for
-       signal from representer proccess, after which it sends 
+       signal from representer process, after which it sends 
        collected statistics to representer  */
     
-    sender_args_t* args = (sender_args_t*)args_struct_ptr;
+    sender_args_t *args = (sender_args_t*)args_struct_ptr;
 
     struct mq_attr notif_attr = {
         .mq_maxmsg = 1,
@@ -70,7 +70,8 @@ void* send_data_to_representer(void* args_struct_ptr)
         else if ( rcv_status == -1 ) {
             continue;
         }        
-
+        
+        // Guarding variables in case of separated changes
         pthread_mutex_lock(args->pkt_mtx);
         stats_to_send[0] = *(args->pkt_num_ptr);
         stats_to_send[1] = *(args->pkt_len_ptr);
