@@ -54,7 +54,7 @@ install: build
 load: CFLAGS += -DLOAD
 load: tests
 
-tests: CFLAGS += -DDEBUG -ggdb3 -fno-omit-frame-pointer
+tests: clean CFLAGS += -DDEBUG -ggdb3 -fno-omit-frame-pointer
 tests: build $(TESTOBJS)
 	$(CC) -I./$(INCLDIR) $(CFLAGS) $(TESTOBJS) $(filter-out $(BUILDDIR)sniffer/main.o, $(SNFROBJS)) \
 		$(SNFRLDFLAGS) -o $(BINDIR)$@;
